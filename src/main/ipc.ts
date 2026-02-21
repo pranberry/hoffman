@@ -10,6 +10,7 @@ import {
   reorderWatchlist, fetchQuotes, fetchStockDetail,
 } from './stocks';
 import { getSetting, setSetting, listSettings } from './settings';
+import { exportBackup, importBackup } from './backup';
 
 export function registerIpcHandlers(): void {
   // ── Folders ──
@@ -49,6 +50,10 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('stocks:quotes', () => fetchQuotes());
   ipcMain.handle('stocks:detail', (_e, symbol: string) => fetchStockDetail(symbol));
   ipcMain.handle('stocks:reorder', (_e, ids: number[]) => reorderWatchlist(ids));
+
+  // ── Backup ──
+  ipcMain.handle('backup:export', () => exportBackup());
+  ipcMain.handle('backup:import', () => importBackup());
 
   // ── Utilities ──
   ipcMain.handle('shell:openExternal', (_e, url: string) => {

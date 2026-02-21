@@ -11,12 +11,14 @@ export function getDb(): Database.Database {
   return db;
 }
 
-export function initDatabase(): void {
-  const dbPath = path.join(app.getPath('userData'), 'private-news-reader.db');
-  db = new Database(dbPath);
+export function initDatabase(dbPath?: string): void {
+  const finalPath = dbPath || path.join(app.getPath('userData'), 'private-news-reader.db');
+  db = new Database(finalPath);
 
   // Enable WAL mode for better concurrent read/write performance
-  db.pragma('journal_mode = WAL');
+  if (finalPath !== ':memory:') {
+    db.pragma('journal_mode = WAL');
+  }
   db.pragma('foreign_keys = ON');
 
   createTables();

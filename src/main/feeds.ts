@@ -6,7 +6,8 @@ import type { Feed, Article, Folder } from '../shared/types';
 // block requests with bot-like UAs. This won't bypass full bot detection
 // (e.g. Akamai Ghost) but handles simple UA checks.
 const parser = new Parser({
-  timeout: 15000,
+  timeout: 30000,
+  maxRedirects: 5,
   headers: {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
     'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
