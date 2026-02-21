@@ -1,0 +1,84 @@
+// ── Shared types used by both main and renderer processes ──
+
+export interface Folder {
+  id: number;
+  name: string;
+  position: number;
+}
+
+export interface Feed {
+  id: number;
+  url: string;
+  title: string;
+  description: string;
+  siteUrl: string;
+  folderId: number | null;
+  lastFetchedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export interface Article {
+  id: number;
+  feedId: number;
+  guid: string;
+  title: string;
+  link: string;
+  author: string;
+  summary: string;
+  content: string;
+  publishedAt: string;
+  isRead: boolean;
+  isStarred: boolean;
+  fetchedAt: string;
+}
+
+export interface StockQuote {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  previousClose: number;
+  lastUpdated: string;
+}
+
+export interface WatchlistItem {
+  id: number;
+  symbol: string;
+  displayName: string;
+  position: number;
+  addedAt: string;
+}
+
+// ── IPC Channel definitions ──
+
+export interface IpcChannels {
+  // Folders
+  'folders:list': () => Folder[];
+  'folders:create': (name: string) => Folder;
+  'folders:rename': (id: number, name: string) => Folder;
+  'folders:delete': (id: number) => void;
+
+  // Feeds
+  'feeds:list': () => Feed[];
+  'feeds:add': (url: string, folderId: number | null) => Feed;
+  'feeds:remove': (id: number) => void;
+  'feeds:refresh': (id?: number) => Article[];
+  'feeds:move': (id: number, folderId: number | null) => void;
+
+  // Articles
+  'articles:list': (feedId?: number, folderId?: number) => Article[];
+  'articles:get': (id: number) => Article | null;
+  'articles:markRead': (id: number, isRead: boolean) => void;
+  'articles:markAllRead': (feedId?: number) => void;
+  'articles:toggleStar': (id: number) => Article;
+  'articles:starred': () => Article[];
+
+  // Stocks
+  'stocks:watchlist': () => WatchlistItem[];
+  'stocks:add': (symbol: string) => WatchlistItem;
+  'stocks:remove': (id: number) => void;
+  'stocks:quotes': () => StockQuote[];
+  'stocks:reorder': (ids: number[]) => void;
+}

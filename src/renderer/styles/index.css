@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* macOS-style drag region for the hidden title bar */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}
+
+/* Article content styling */
+.article-content {
+  @apply leading-relaxed;
+}
+
+.article-content img {
+  @apply max-w-full h-auto rounded-lg my-4;
+}
+
+.article-content a {
+  @apply text-blue-600 dark:text-blue-400 underline;
+}
+
+.article-content blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4;
+}
+
+.article-content pre {
+  @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-4;
+}
+
+.article-content code {
+  @apply bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm;
+}
+
+.article-content h1, .article-content h2, .article-content h3 {
+  @apply font-semibold mt-6 mb-2;
+}
+
+.article-content p {
+  @apply mb-4;
+}

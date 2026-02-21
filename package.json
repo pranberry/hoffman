@@ -1,0 +1,62 @@
+{
+  "name": "private-news-reader",
+  "version": "1.0.0",
+  "description": "A privacy-first RSS reader and stock tracker for macOS",
+  "main": "dist/main/main/index.js",
+  "scripts": {
+    "dev": "npm run build:main && concurrently \"npm run dev:main\" \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:main": "tsc -p tsconfig.main.json --watch",
+    "dev:renderer": "vite",
+    "dev:electron": "sleep 2 && electron dist/main/main/index.js --dev",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build",
+    "start": "electron dist/main/main/index.js",
+    "dist": "npm run build && electron-builder",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.renderer.json",
+    "postinstall": "electron-rebuild"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "rss-parser": "^3.13.0",
+    "yahoo-finance2": "^2.14.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "electron": "^40.6.0",
+    "electron-builder": "^26.8.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  },
+  "build": {
+    "appId": "com.private.newsreader",
+    "productName": "Private News Reader",
+    "mac": {
+      "category": "public.app-category.news",
+      "target": "dmg",
+      "icon": "build/icon.icns"
+    },
+    "dmg": {
+      "title": "Private News Reader"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [],
+    "directories": {
+      "output": "release"
+    }
+  }
+}
