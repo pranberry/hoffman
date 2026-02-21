@@ -1,4 +1,4 @@
-# Private News Reader
+# Hoffman Reader
 
 A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks. Zero telemetry — the only network calls are to your RSS feeds and Yahoo Finance.
 
@@ -42,9 +42,9 @@ The UI is designed to stay functional even in narrow windows:
 
 *Note: Use `Ctrl` instead of `⌘` on Windows/Linux.*
 
-## Why Private News Reader?
+## Why Hoffman Reader?
 
-Most news readers today are filled with tracking pixels, targeted ads, and "recommended content" algorithms. **Private News Reader** is different. It's a tool for intentional reading. No one knows what you read, what stocks you watch, or how often you check them. It's just you and your sources.
+Most news readers today are filled with tracking pixels, targeted ads, and "recommended content" algorithms. **Hoffman Reader** is different. It's a tool for intentional reading. No one knows what you read, what stocks you watch, or how often you check them. It's just you and your sources.
 
 **Built with ❤️ for privacy enthusiasts.** If you like this project, feel free to share it with others who value digital autonomy.
 

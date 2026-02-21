@@ -41,7 +41,7 @@ export async function exportBackup() {
 
   const { filePath, canceled } = await dialog.showSaveDialog({
     title: 'Export Settings',
-    defaultPath: 'private-news-settings.json',
+    defaultPath: 'hoffman-settings.json',
     filters: [{ name: 'JSON', extensions: ['json'] }],
   });
 

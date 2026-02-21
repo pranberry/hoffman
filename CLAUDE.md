@@ -1,4 +1,4 @@
-# CLAUDE.md — Private News Reader
+# CLAUDE.md — Hoffman Reader
 
 ## What is this?
 A privacy-first macOS desktop app for reading RSS feeds and tracking stocks. Built with Electron, React, TypeScript, and SQLite. Zero telemetry — the only outbound network calls are RSS fetches and Yahoo Finance quotes.

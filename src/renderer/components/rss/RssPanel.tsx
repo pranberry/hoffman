@@ -157,8 +157,27 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+      const isCmd = e.metaKey || e.ctrlKey;
+      const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
+
+      // Handle toggles first - ensure cmd+a is intercepted before browser select all
+      if (e.key === 'a' && isCmd) {
+        if (isInput) return; // Allow standard Select All in inputs
+        e.preventDefault();
+        setShowAddFolderForm(false);
+        setShowAddFeedForm(prev => !prev);
+        return;
+      }
+
+      if (e.key === 'd' && isCmd) {
+        e.preventDefault();
+        setShowAddFeedForm(false);
+        setShowAddFolderForm(prev => !prev);
+        return;
+      }
+
+      // Don't handle other shortcuts if user is typing in an input
+      if (isInput) {
         return;
       }
 
@@ -167,7 +186,7 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
 
       switch (e.key) {
         case 'j': {
-          if (e.metaKey || e.ctrlKey) {
+          if (isCmd) {
             e.preventDefault();
             const next = Math.min(idx + 1, arts.length - 1);
             if (next >= 0 && arts[next]) {
@@ -179,7 +198,7 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
           break;
         }
         case 'k': {
-          if (e.metaKey || e.ctrlKey) {
+          if (isCmd) {
             e.preventDefault();
             const prev = Math.max(idx - 1, 0);
             if (prev >= 0 && arts[prev]) {
@@ -191,7 +210,7 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
           break;
         }
         case 'o': {
-          if (e.metaKey || e.ctrlKey) {
+          if (isCmd) {
             e.preventDefault();
             const current = idx >= 0 ? arts[idx] : null;
             if (current?.link) handleOpenInBrowser(current.link);
@@ -199,35 +218,17 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
           break;
         }
         case 'r': {
-          if (e.metaKey || e.ctrlKey) {
+          if (isCmd) {
             e.preventDefault();
             handleRefresh();
           }
           break;
         }
         case 's': {
-          if (e.metaKey || e.ctrlKey) {
+          if (isCmd) {
             e.preventDefault();
             const current = idx >= 0 ? arts[idx] : null;
             if (current) handleToggleStar(current.id);
-          }
-          break;
-        }
-        case 'a': {
-          if (e.metaKey || e.ctrlKey) {
-            // Toggle add feed form
-            e.preventDefault();
-            setShowAddFolderForm(false);
-            setShowAddFeedForm(prev => !prev);
-          }
-          break;
-        }
-        case 'd': {
-          if (e.metaKey || e.ctrlKey) {
-            // Toggle add folder form
-            e.preventDefault();
-            setShowAddFeedForm(false);
-            setShowAddFolderForm(prev => !prev);
           }
           break;
         }

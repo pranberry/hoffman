@@ -17,14 +17,17 @@ export function App() {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+      const isCmd = e.metaKey || e.ctrlKey;
+      
+      if (e.key === 't' && isCmd) {
+        e.preventDefault();
+        setShowAddStock(prev => !prev);
         return;
       }
 
-      if (e.key === 't' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setShowAddStock(true);
+      // Don't handle other shortcuts if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+        return;
       }
     };
 
@@ -36,7 +39,7 @@ export function App() {
   const showStocks = winWidth > 400;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden pt-1">
       <div className="flex flex-1 min-h-0 min-w-0">
         {/* RSS panel fills remaining space */}
         <RssPanel parentWidth={winWidth - (showStocks ? stockPanel.width : 0)} />

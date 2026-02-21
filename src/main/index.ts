@@ -12,6 +12,8 @@ if (!gotLock) {
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
+  const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
+  
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -19,6 +21,7 @@ function createWindow(): void {
     minHeight: 600,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
+    icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -26,8 +29,6 @@ function createWindow(): void {
       sandbox: false, // Required for better-sqlite3 via preload
     },
   });
-
-  const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
 
   // Strict CSP in production only — Vite's HMR requires inline scripts + WS in dev
   if (!isDev) {

@@ -12,7 +12,7 @@ export function getDb(): Database.Database {
 }
 
 export function initDatabase(dbPath?: string): void {
-  const finalPath = dbPath || path.join(app.getPath('userData'), 'private-news-reader.db');
+  const finalPath = dbPath || path.join(app.getPath('userData'), 'hoffman-reader.db');
   db = new Database(finalPath);
 
   // Enable WAL mode for better concurrent read/write performance
