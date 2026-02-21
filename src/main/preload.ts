@@ -37,6 +37,7 @@ const api = {
     add: (symbol: string) => ipcRenderer.invoke('stocks:add', symbol),
     remove: (id: number) => ipcRenderer.invoke('stocks:remove', id),
     quotes: () => ipcRenderer.invoke('stocks:quotes'),
+    detail: (symbol: string) => ipcRenderer.invoke('stocks:detail', symbol),
     reorder: (ids: number[]) => ipcRenderer.invoke('stocks:reorder', ids),
   },
 

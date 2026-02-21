@@ -51,7 +51,7 @@ export function Sidebar({
   const isAllSelected = !selectedFeedId && !selectedFolderId && !showStarred;
 
   return (
-    <div className="w-60 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full">
       {/* Drag region for macOS title bar */}
       <div className="titlebar-drag h-12 flex items-end px-4 pb-1">
         <span className="text-xs font-medium text-gray-400 uppercase tracking-wider titlebar-no-drag">Feeds</span>

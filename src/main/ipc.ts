@@ -7,7 +7,7 @@ import {
 } from './feeds';
 import {
   getWatchlist, addToWatchlist, removeFromWatchlist,
-  reorderWatchlist, fetchQuotes,
+  reorderWatchlist, fetchQuotes, fetchStockDetail,
 } from './stocks';
 
 export function registerIpcHandlers(): void {
@@ -40,6 +40,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('stocks:add', (_e, symbol: string) => addToWatchlist(symbol));
   ipcMain.handle('stocks:remove', (_e, id: number) => removeFromWatchlist(id));
   ipcMain.handle('stocks:quotes', () => fetchQuotes());
+  ipcMain.handle('stocks:detail', (_e, symbol: string) => fetchStockDetail(symbol));
   ipcMain.handle('stocks:reorder', (_e, ids: number[]) => reorderWatchlist(ids));
 
   // ── Utilities ──

@@ -1,14 +1,27 @@
 import React from 'react';
 import { RssPanel } from './components/rss/RssPanel';
 import { StockPanel } from './components/stocks/StockPanel';
+import { useResizable } from './hooks/useResizable';
 
 export function App() {
+  const stockPanel = useResizable({ initialWidth: 260, minWidth: 180, maxWidth: 450, storageKey: 'stockpanel-width' });
+
   return (
     <div className="h-screen flex flex-col">
-      {/* Keyboard shortcut hints */}
-      <div className="flex h-full">
+      <div className="flex flex-1 min-h-0">
+        {/* RSS panel fills remaining space */}
         <RssPanel />
-        <StockPanel />
+
+        {/* Resize handle: RSS ↔ Stocks */}
+        <div className="resize-handle" onMouseDown={stockPanel.onMouseDown} />
+
+        {/* Stock panel — resizable */}
+        <div
+          style={{ width: stockPanel.width, flexShrink: 0 }}
+          className="border-l border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 overflow-hidden"
+        >
+          <StockPanel />
+        </div>
       </div>
 
       {/* Status bar with keyboard hints */}

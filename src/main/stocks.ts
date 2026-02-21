@@ -1,13 +1,15 @@
 import { getDb } from './database';
-import type { WatchlistItem, StockQuote } from '../shared/types';
+import type { WatchlistItem, StockQuote, StockDetail } from '../shared/types';
 
-// yahoo-finance2 is ESM-only; use dynamic import for CJS main process
+// yahoo-finance2 is ESM-only; use dynamic import and instantiate with `new`
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _yf: any;
 async function getYahooFinance() {
   if (!_yf) {
     const mod = await import('yahoo-finance2');
-    _yf = mod.default;
+    const YF = mod.default;
+    // v3 exports a class that must be instantiated
+    _yf = typeof YF === 'function' ? new YF({ suppressNotices: ['yahooSurvey'] }) : YF;
   }
   return _yf;
 }
@@ -74,7 +76,6 @@ export async function fetchQuotes(): Promise<StockQuote[]> {
   const symbols = watchlist.map(w => w.symbol);
   const quotes: StockQuote[] = [];
 
-  // Fetch individually to handle partial failures gracefully
   const results = await Promise.allSettled(
     symbols.map(async (symbol) => {
       const quote = await yf.quote(symbol);
@@ -97,4 +98,40 @@ export async function fetchQuotes(): Promise<StockQuote[]> {
   }
 
   return quotes;
+}
+
+export async function fetchStockDetail(symbol: string): Promise<StockDetail> {
+  const yf = await getYahooFinance();
+
+  // Fetch quote + summary in parallel
+  const [quote, summary] = await Promise.all([
+    yf.quote(symbol),
+    yf.quoteSummary(symbol, { modules: ['summaryDetail', 'financialData'] }).catch(() => null),
+  ]);
+
+  const sd = summary?.summaryDetail;
+  const fd = summary?.financialData;
+
+  return {
+    symbol,
+    name: quote.shortName || quote.longName || symbol,
+    price: quote.regularMarketPrice ?? 0,
+    change: quote.regularMarketChange ?? 0,
+    changePercent: quote.regularMarketChangePercent ?? 0,
+    previousClose: quote.regularMarketPreviousClose ?? 0,
+    open: quote.regularMarketOpen ?? sd?.regularMarketOpen ?? 0,
+    dayLow: quote.regularMarketDayLow ?? sd?.regularMarketDayLow ?? 0,
+    dayHigh: quote.regularMarketDayHigh ?? sd?.regularMarketDayHigh ?? 0,
+    fiftyTwoWeekLow: quote.fiftyTwoWeekLow ?? sd?.fiftyTwoWeekLow ?? 0,
+    fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh ?? sd?.fiftyTwoWeekHigh ?? 0,
+    marketCap: quote.marketCap ?? 0,
+    volume: quote.regularMarketVolume ?? sd?.volume ?? 0,
+    avgVolume: quote.averageDailyVolume3Month ?? sd?.averageVolume ?? 0,
+    peRatio: quote.trailingPE ?? sd?.trailingPE ?? null,
+    eps: quote.epsTrailingTwelveMonths ?? null,
+    dividendYield: sd?.dividendYield ?? null,
+    targetMeanPrice: fd?.targetMeanPrice ?? null,
+    recommendationKey: fd?.recommendationKey ?? null,
+    numberOfAnalystOpinions: fd?.numberOfAnalystOpinions ?? null,
+  };
 }

@@ -43,6 +43,30 @@ export interface StockQuote {
   lastUpdated: string;
 }
 
+export interface StockDetail {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  previousClose: number;
+  open: number;
+  dayLow: number;
+  dayHigh: number;
+  fiftyTwoWeekLow: number;
+  fiftyTwoWeekHigh: number;
+  marketCap: number;
+  volume: number;
+  avgVolume: number;
+  // Financial data
+  peRatio: number | null;
+  eps: number | null;
+  dividendYield: number | null;
+  targetMeanPrice: number | null;
+  recommendationKey: string | null;
+  numberOfAnalystOpinions: number | null;
+}
+
 export interface WatchlistItem {
   id: number;
   symbol: string;
@@ -80,5 +104,6 @@ export interface IpcChannels {
   'stocks:add': (symbol: string) => WatchlistItem;
   'stocks:remove': (id: number) => void;
   'stocks:quotes': () => StockQuote[];
+  'stocks:detail': (symbol: string) => StockDetail;
   'stocks:reorder': (ids: number[]) => void;
 }

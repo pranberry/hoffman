@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { ArticleList } from './ArticleList';
 import { ArticleView } from './ArticleView';
 import { Spinner } from '../common/Spinner';
+import { useResizable } from '../../hooks/useResizable';
 
 export function RssPanel() {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -15,6 +16,9 @@ export function RssPanel() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedArticleIndex, setSelectedArticleIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
+
+  const sidebar = useResizable({ initialWidth: 220, minWidth: 140, maxWidth: 360, storageKey: 'sidebar-width' });
+  const articleList = useResizable({ initialWidth: 300, minWidth: 200, maxWidth: 600, storageKey: 'articlelist-width' });
 
   const articlesRef = useRef(articles);
   const selectedIndexRef = useRef(selectedArticleIndex);
@@ -135,18 +139,15 @@ export function RssPanel() {
 
       switch (e.key) {
         case 'j': {
-          // Move to next article
           const next = Math.min(idx + 1, arts.length - 1);
           if (next >= 0 && arts[next]) {
             selectArticle(arts[next].id);
-            // Scroll the article into view in the list
             const el = document.querySelector(`[data-article-id="${arts[next].id}"]`);
             el?.scrollIntoView({ block: 'nearest' });
           }
           break;
         }
         case 'k': {
-          // Move to previous article
           const prev = Math.max(idx - 1, 0);
           if (prev >= 0 && arts[prev]) {
             selectArticle(arts[prev].id);
@@ -156,24 +157,17 @@ export function RssPanel() {
           break;
         }
         case 'o': {
-          // Open in browser
           const current = idx >= 0 ? arts[idx] : null;
-          if (current?.link) {
-            handleOpenInBrowser(current.link);
-          }
+          if (current?.link) handleOpenInBrowser(current.link);
           break;
         }
         case 'r': {
-          // Refresh
           handleRefresh();
           break;
         }
         case 's': {
-          // Toggle star
           const current = idx >= 0 ? arts[idx] : null;
-          if (current) {
-            handleToggleStar(current.id);
-          }
+          if (current) handleToggleStar(current.id);
           break;
         }
       }
@@ -184,26 +178,32 @@ export function RssPanel() {
   }, [selectArticle, handleOpenInBrowser, handleRefresh, handleToggleStar]);
 
   return (
-    <div className="flex flex-1 min-h-0">
-      <Sidebar
-        folders={folders}
-        feeds={feeds}
-        selectedFeedId={selectedFeedId}
-        selectedFolderId={selectedFolderId}
-        showStarred={showStarred}
-        onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFolderId(null); setShowStarred(false); }}
-        onSelectFolder={(id) => { setSelectedFolderId(id); setSelectedFeedId(null); setShowStarred(false); }}
-        onSelectStarred={() => { setShowStarred(true); setSelectedFeedId(null); setSelectedFolderId(null); }}
-        onSelectAll={() => { setSelectedFeedId(null); setSelectedFolderId(null); setShowStarred(false); }}
-        onAddFeed={handleAddFeed}
-        onRemoveFeed={handleRemoveFeed}
-        onAddFolder={handleAddFolder}
-        onDeleteFolder={handleDeleteFolder}
-        onRefresh={handleRefresh}
-      />
+    <div className="flex flex-1 min-h-0 min-w-0">
+      {/* Sidebar — resizable */}
+      <div style={{ width: sidebar.width, flexShrink: 0 }} className="border-r border-gray-200 dark:border-gray-800 flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-hidden">
+        <Sidebar
+          folders={folders}
+          feeds={feeds}
+          selectedFeedId={selectedFeedId}
+          selectedFolderId={selectedFolderId}
+          showStarred={showStarred}
+          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFolderId(null); setShowStarred(false); }}
+          onSelectFolder={(id) => { setSelectedFolderId(id); setSelectedFeedId(null); setShowStarred(false); }}
+          onSelectStarred={() => { setShowStarred(true); setSelectedFeedId(null); setSelectedFolderId(null); }}
+          onSelectAll={() => { setSelectedFeedId(null); setSelectedFolderId(null); setShowStarred(false); }}
+          onAddFeed={handleAddFeed}
+          onRemoveFeed={handleRemoveFeed}
+          onAddFolder={handleAddFolder}
+          onDeleteFolder={handleDeleteFolder}
+          onRefresh={handleRefresh}
+        />
+      </div>
 
-      {/* Article list */}
-      <div className="w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+      {/* Resize handle: sidebar ↔ article list */}
+      <div className="resize-handle" onMouseDown={sidebar.onMouseDown} />
+
+      {/* Article list — resizable */}
+      <div style={{ width: articleList.width, flexShrink: 0 }} className="border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
         <div className="titlebar-drag h-12 flex items-end px-4 pb-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider titlebar-no-drag">
             {loading && <Spinner size="sm" />}
@@ -217,7 +217,10 @@ export function RssPanel() {
         />
       </div>
 
-      {/* Article view */}
+      {/* Resize handle: article list ↔ article view */}
+      <div className="resize-handle" onMouseDown={articleList.onMouseDown} />
+
+      {/* Article view — fills remaining space */}
       <ArticleView
         article={selectedArticle}
         onToggleStar={handleToggleStar}
