@@ -1,8 +1,8 @@
 import { dialog } from 'electron';
 import fs from 'fs/promises';
-import { getDb } from './database.js';
-import { listFolders, createFolder, listFeeds } from './feeds.js';
-import { getWatchlist } from './stocks.js';
+import { getDb } from './database';
+import { listFolders, createFolder, listFeeds } from './feeds';
+import { getWatchlist } from './stocks';
 
 interface BackupData {
   version: number;

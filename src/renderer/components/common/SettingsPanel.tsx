@@ -60,6 +60,40 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </select>
             <p className="mt-2 text-xs text-gray-500">How often the app checks for new articles in the background.</p>
           </div>
+
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Backup & Restore</h4>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={async () => {
+                  const res = await window.api.backup.export();
+                  if (res.success) {
+                    alert('Settings exported successfully!');
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <span>Export Settings (.json)</span>
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await window.api.backup.import();
+                    if (res.success && res.count) {
+                      alert(`Import complete!\nAdded ${res.count.feeds} feeds, ${res.count.stocks} stocks, and created ${res.count.folders} folders.`);
+                      window.location.reload();
+                    }
+                  } catch (err) {
+                    alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <span>Import Settings (.json)</span>
+              </button>
+              <p className="text-xs text-gray-500 italic">Importing will add new items without deleting existing ones.</p>
+            </div>
+          </div>
         </div>
 
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3">

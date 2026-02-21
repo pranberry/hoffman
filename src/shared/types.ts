@@ -112,4 +112,8 @@ export interface IpcChannels {
   'stocks:quotes': () => StockQuote[];
   'stocks:detail': (symbol: string) => StockDetail;
   'stocks:reorder': (ids: number[]) => void;
+
+  // Backup & Restore
+  'backup:export': () => Promise<{ success: boolean; filePath?: string }>;
+  'backup:import': () => Promise<{ success: boolean; count?: { feeds: number; stocks: number; folders: number } }>;
 }

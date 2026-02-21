@@ -49,6 +49,12 @@ const api = {
     reorder: (ids: number[]) => ipcRenderer.invoke('stocks:reorder', ids),
   },
 
+  // Backup & Restore
+  backup: {
+    export: () => ipcRenderer.invoke('backup:export'),
+    import: () => ipcRenderer.invoke('backup:import'),
+  },
+
   // Shell
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
