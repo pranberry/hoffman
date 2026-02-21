@@ -5,6 +5,7 @@ interface ArticleViewProps {
   article: Article | null;
   onToggleStar: (id: number) => void;
   onOpenInBrowser: (url: string) => void;
+  onBack?: () => void;
 }
 
 /**
@@ -28,10 +29,18 @@ function isContentTruncated(article: Article): boolean {
   return false;
 }
 
-export function ArticleView({ article, onToggleStar, onOpenInBrowser }: ArticleViewProps) {
+export function ArticleView({ article, onToggleStar, onOpenInBrowser, onBack }: ArticleViewProps) {
   if (!article) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 text-sm">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="mb-4 px-4 py-2 bg-blue-600 text-white rounded text-xs font-bold"
+          >
+            ← Back to Articles
+          </button>
+        )}
         Select an article to read
       </div>
     );
@@ -45,6 +54,14 @@ export function ArticleView({ article, onToggleStar, onOpenInBrowser }: ArticleV
       <div className="max-w-2xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-6">
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="mb-6 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              ← Back to Articles
+            </button>
+          )}
           <h1 className="text-xl font-bold leading-tight mb-3">{article.title}</h1>
           <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mb-3">
             {article.author && <span>{article.author}</span>}

@@ -6,65 +6,47 @@ A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks
 
 - **RSS Reader** — Add feeds by URL, organize into folders, clean reading view
 - **Stock Tracker** — Side panel watchlist with live quotes from Yahoo Finance
-- **Keyboard-driven** — `j`/`k` navigate, `o` opens in browser, `s` stars, `r` refreshes
+- **Intelligent Responsive UI** — Panels automatically shrink or collapse as you resize the window. The stock panel transforms into a compact ticker view.
+- **Backup & Restore** — Export your entire configuration (feeds, folders, stocks) to a portable `.json` file and import it back anytime.
+- **Keyboard-driven** — `⌘+j`/`k` navigate, `⌘+o` opens in browser, `⌘+s` stars, `⌘+r` refreshes, `⌘+t` adds stock
 - **Offline-first** — All data in local SQLite, panels degrade gracefully without network
 - **Dark mode** — Follows macOS system appearance automatically
 - **Private** — No analytics, no tracking, no external resources, strict CSP
 
-## Installation
+## Usage
 
-### Prerequisites
-- Node.js 20+
-- npm
+### Managing Feeds & Stocks
+- **Add Feed**: Press `⌘+A` or use the sidebar "+" button.
+- **Add Folder**: Press `⌘+D` or use the sidebar folder icon.
+- **Add Stock**: Press `⌘+T` or use the "+ Add Stock" button in the right panel.
+- **Export/Import**: Open Settings (⚙ icon in sidebar) to backup your configuration to a `.json` file. This makes it easy to sync between machines or keep a safe copy of your reading list.
 
-### Setup
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-## Development
-
-```bash
-npm run dev
-```
-
-This builds the main process, then starts three concurrent processes:
-1. TypeScript compiler watching `src/main/`
-2. Vite dev server for the React renderer
-3. Electron loading from localhost
-
-## Packaging for macOS
-
-### 1. Build and Package
-To generate a production `.dmg` file:
-```bash
-npm run build          # Builds production assets
-npm run dist           # Packages into a .dmg in the /dist folder
-```
-
-### 2. Installing the DMG
-- Open the `dist/Private News Reader-X.X.X.dmg` file.
-- Drag the app to your `Applications` folder.
-
-### 3. Handling Gatekeeper (Unsigned Builds)
-Since this is a private project, the build is likely unsigned. If macOS blocks it:
-1. Right-click (or Control-click) the app in your Applications folder.
-2. Select **Open**.
-3. In the dialog that appears, click **Open** again.
-4. You only need to do this once.
+### Responsive Panels
+The UI is designed to stay functional even in narrow windows:
+- **Stock Panel**: When the panel is narrow (< 160px), it collapses into a "Ticker" view. Click a ticker to toggle between price change ($) and percentage (%). Click the symbol to see full details in a hover popup (dismiss with `Esc`).
+- **Sidebar**: Automatically hides when the window is narrow, maximizing space for articles.
+- **Navigation**: In narrow views, a "Back" button appears in the article view to return to the list.
 
 ## Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
-| `⌘+j`/`k` | Navigate articles |
+| `⌘+j` / `⌘+k` | Navigate to next/previous article |
 | `⌘+o` | Open current article in system browser |
 | `⌘+s` | Toggle star (bookmark) |
 | `⌘+r` | Refresh all feeds |
-| `⌘+a` (Mac) / `Ctrl+a` | Toggle "Add Feed" form |
-| `⌘+d` (Mac) / `Ctrl+d` | Toggle "Add Folder" form |
+| `⌘+t` | Toggle "Add Ticker" form |
+| `⌘+a` | Toggle "Add Feed" form |
+| `⌘+d` | Toggle "Add Folder" form |
+| `Esc` | Close popups or settings |
+
+*Note: Use `Ctrl` instead of `⌘` on Windows/Linux.*
+
+## Why Private News Reader?
+
+Most news readers today are filled with tracking pixels, targeted ads, and "recommended content" algorithms. **Private News Reader** is different. It's a tool for intentional reading. No one knows what you read, what stocks you watch, or how often you check them. It's just you and your sources.
+
+**Built with ❤️ for privacy enthusiasts.** If you like this project, feel free to share it with others who value digital autonomy.
 
 ## Architecture
 

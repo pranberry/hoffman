@@ -5,9 +5,10 @@ interface UseResizableOptions {
   minWidth: number;
   maxWidth: number;
   storageKey?: string;
+  invert?: boolean;
 }
 
-export function useResizable({ initialWidth, minWidth, maxWidth, storageKey }: UseResizableOptions) {
+export function useResizable({ initialWidth, minWidth, maxWidth, storageKey, invert = false }: UseResizableOptions) {
   const [width, setWidth] = useState(() => {
     if (storageKey) {
       const saved = localStorage.getItem(storageKey);
@@ -36,7 +37,8 @@ export function useResizable({ initialWidth, minWidth, maxWidth, storageKey }: U
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
       const delta = e.clientX - startX.current;
-      const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta));
+      const adjustedDelta = invert ? -delta : delta;
+      const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + adjustedDelta));
       setWidth(newWidth);
     };
 
