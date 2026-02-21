@@ -27,20 +27,24 @@ function createWindow(): void {
     },
   });
 
-  // Set strict Content Security Policy
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self';"
-        ],
-      },
+  const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
+
+  // Strict CSP in production only — Vite's HMR requires inline scripts + WS in dev
+  if (!isDev) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self';"
+          ],
+        },
+      });
     });
-  });
+  }
 
   // Load the app
-  if (process.env.NODE_ENV === 'development' || process.argv.includes('--dev')) {
+  if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
