@@ -9,6 +9,7 @@ import {
   getWatchlist, addToWatchlist, removeFromWatchlist,
   reorderWatchlist, fetchQuotes, fetchStockDetail,
 } from './stocks';
+import { getSetting, setSetting, listSettings } from './settings';
 
 export function registerIpcHandlers(): void {
   // ── Folders ──
@@ -16,6 +17,11 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('folders:create', (_e, name: string) => createFolder(name));
   ipcMain.handle('folders:rename', (_e, id: number, name: string) => renameFolder(id, name));
   ipcMain.handle('folders:delete', (_e, id: number) => deleteFolder(id));
+
+  // ── Settings ──
+  ipcMain.handle('settings:get', (_e, key: string) => getSetting(key));
+  ipcMain.handle('settings:set', (_e, key: string, value: string) => setSetting(key, value));
+  ipcMain.handle('settings:list', () => listSettings());
 
   // ── Feeds ──
   ipcMain.handle('feeds:list', () => listFeeds());

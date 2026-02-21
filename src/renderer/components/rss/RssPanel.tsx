@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { ArticleList } from './ArticleList';
 import { ArticleView } from './ArticleView';
 import { Spinner } from '../common/Spinner';
+import { SettingsPanel } from '../common/SettingsPanel';
 import { useResizable } from '../../hooks/useResizable';
 
 export function RssPanel() {
@@ -16,6 +17,7 @@ export function RssPanel() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedArticleIndex, setSelectedArticleIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Sidebar form visibility — lifted here so hotkeys can toggle them
   const [showAddFeedForm, setShowAddFeedForm] = useState(false);
@@ -64,12 +66,20 @@ export function RssPanel() {
 
   useEffect(() => { loadArticles(); }, [loadArticles]);
 
-  // Auto-refresh every 5 minutes
+  // Auto-refresh based on setting
   useEffect(() => {
-    const interval = setInterval(() => {
-      window.api.feeds.refresh().then(() => loadArticles());
-    }, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    let intervalId: NodeJS.Timeout;
+    
+    window.api.settings.get('refresh_interval').then(val => {
+      const seconds = parseInt(val || '300', 10);
+      intervalId = setInterval(() => {
+        window.api.feeds.refresh().then(() => loadArticles());
+      }, seconds * 1000);
+    });
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [loadArticles]);
 
   const selectArticle = useCallback(async (id: number) => {
@@ -153,49 +163,68 @@ export function RssPanel() {
 
       switch (e.key) {
         case 'j': {
-          const next = Math.min(idx + 1, arts.length - 1);
-          if (next >= 0 && arts[next]) {
-            selectArticle(arts[next].id);
-            const el = document.querySelector(`[data-article-id="${arts[next].id}"]`);
-            el?.scrollIntoView({ block: 'nearest' });
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            const next = Math.min(idx + 1, arts.length - 1);
+            if (next >= 0 && arts[next]) {
+              selectArticle(arts[next].id);
+              const el = document.querySelector(`[data-article-id="${arts[next].id}"]`);
+              el?.scrollIntoView({ block: 'nearest' });
+            }
           }
           break;
         }
         case 'k': {
-          const prev = Math.max(idx - 1, 0);
-          if (prev >= 0 && arts[prev]) {
-            selectArticle(arts[prev].id);
-            const el = document.querySelector(`[data-article-id="${arts[prev].id}"]`);
-            el?.scrollIntoView({ block: 'nearest' });
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            const prev = Math.max(idx - 1, 0);
+            if (prev >= 0 && arts[prev]) {
+              selectArticle(arts[prev].id);
+              const el = document.querySelector(`[data-article-id="${arts[prev].id}"]`);
+              el?.scrollIntoView({ block: 'nearest' });
+            }
           }
           break;
         }
         case 'o': {
-          const current = idx >= 0 ? arts[idx] : null;
-          if (current?.link) handleOpenInBrowser(current.link);
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            const current = idx >= 0 ? arts[idx] : null;
+            if (current?.link) handleOpenInBrowser(current.link);
+          }
           break;
         }
         case 'r': {
-          handleRefresh();
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            handleRefresh();
+          }
           break;
         }
         case 's': {
-          const current = idx >= 0 ? arts[idx] : null;
-          if (current) handleToggleStar(current.id);
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            const current = idx >= 0 ? arts[idx] : null;
+            if (current) handleToggleStar(current.id);
+          }
           break;
         }
-        case 'f': {
-          // Toggle add feed form
-          e.preventDefault();
-          setShowAddFolderForm(false);
-          setShowAddFeedForm(prev => !prev);
+        case 'a': {
+          if (e.metaKey || e.ctrlKey) {
+            // Toggle add feed form
+            e.preventDefault();
+            setShowAddFolderForm(false);
+            setShowAddFeedForm(prev => !prev);
+          }
           break;
         }
         case 'd': {
-          // Toggle add folder form
-          e.preventDefault();
-          setShowAddFeedForm(false);
-          setShowAddFolderForm(prev => !prev);
+          if (e.metaKey || e.ctrlKey) {
+            // Toggle add folder form
+            e.preventDefault();
+            setShowAddFeedForm(false);
+            setShowAddFolderForm(prev => !prev);
+          }
           break;
         }
       }
@@ -230,6 +259,7 @@ export function RssPanel() {
           onAddFolder={handleAddFolder}
           onDeleteFolder={handleDeleteFolder}
           onRefresh={handleRefresh}
+          onShowSettings={() => setShowSettings(true)}
         />
       </div>
 
@@ -260,6 +290,10 @@ export function RssPanel() {
         onToggleStar={handleToggleStar}
         onOpenInBrowser={handleOpenInBrowser}
       />
+
+      {showSettings && (
+        <SettingsPanel onClose={() => setShowSettings(false)} />
+      )}
     </div>
   );
 }

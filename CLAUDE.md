@@ -57,12 +57,12 @@ A privacy-first macOS desktop app for reading RSS feeds and tracking stocks. Bui
 - CSS uses Tailwind v4 with `@import "tailwindcss"` — no tailwind.config.js needed
 
 ## Keyboard shortcuts
-- `j`/`k` — navigate articles
-- `o` — open in browser
-- `s` — toggle star
-- `r` — refresh feeds
-- `f` — toggle add feed form
-- `d` — toggle add folder form
+- `Cmd/Ctrl+j/k` — navigate articles
+- `Cmd/Ctrl+o` — open in browser
+- `Cmd/Ctrl+s` — toggle star
+- `Cmd/Ctrl+r` — refresh feeds
+- `Cmd/Ctrl+a` — toggle add feed form
+- `Cmd/Ctrl+d` — toggle add folder form
 
 ## Commands
 - `npm install` — install dependencies

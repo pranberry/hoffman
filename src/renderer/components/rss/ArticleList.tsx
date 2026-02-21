@@ -42,12 +42,15 @@ export function ArticleList({ articles, selectedArticleId, onSelectArticle }: Ar
             key={article.id}
             onClick={() => onSelectArticle(article.id)}
             data-article-id={article.id}
-            className={`w-full text-left px-3 py-2.5 border-b border-gray-100 dark:border-gray-800/50 transition-colors block ${
+            className={`w-full text-left px-3 py-2.5 border-b border-gray-100 dark:border-gray-800/50 transition-all block relative ${
               isSelected
-                ? 'bg-blue-50 dark:bg-blue-900/20'
+                ? 'bg-blue-50 dark:bg-blue-900/30'
                 : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             } ${article.isRead ? 'opacity-60' : ''}`}
           >
+            {isSelected && (
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+            )}
             {/* Title row — wraps instead of truncating */}
             <div className={`text-[13px] leading-snug mb-1 ${
               article.isRead ? 'font-normal' : 'font-semibold'

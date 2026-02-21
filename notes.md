@@ -4,3 +4,4 @@
   - you can toggle a setting to keep it running
   
 - deffs can't one shot. even with opus4.6
+- 

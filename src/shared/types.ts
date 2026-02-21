@@ -84,6 +84,11 @@ export interface IpcChannels {
   'folders:rename': (id: number, name: string) => Folder;
   'folders:delete': (id: number) => void;
 
+  // Settings
+  'settings:get': (key: string) => string | null;
+  'settings:set': (key: string, value: string) => void;
+  'settings:list': () => Record<string, string>;
+
   // Feeds
   'feeds:list': () => Feed[];
   'feeds:add': (url: string, folderId: number | null) => Feed;

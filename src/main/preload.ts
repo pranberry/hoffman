@@ -12,6 +12,13 @@ const api = {
     delete: (id: number) => ipcRenderer.invoke('folders:delete', id),
   },
 
+  // Settings
+  settings: {
+    get: (key: string) => ipcRenderer.invoke('settings:get', key),
+    set: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),
+    list: () => ipcRenderer.invoke('settings:list'),
+  },
+
   // Feeds
   feeds: {
     list: () => ipcRenderer.invoke('feeds:list'),

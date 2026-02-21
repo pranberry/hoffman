@@ -11,10 +11,22 @@ A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks
 - **Dark mode** — Follows macOS system appearance automatically
 - **Private** — No analytics, no tracking, no external resources, strict CSP
 
-## Quick Start
+## Installation
+
+### Prerequisites
+- Node.js 20+
+- npm
+
+### Setup
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+## Development
 
 ```bash
-npm install
 npm run dev
 ```
 
@@ -23,12 +35,36 @@ This builds the main process, then starts three concurrent processes:
 2. Vite dev server for the React renderer
 3. Electron loading from localhost
 
-## Build & Package
+## Packaging for macOS
 
+### 1. Build and Package
+To generate a production `.dmg` file:
 ```bash
-npm run build          # Production build
-npm run dist           # Build + package as .dmg
+npm run build          # Builds production assets
+npm run dist           # Packages into a .dmg in the /dist folder
 ```
+
+### 2. Installing the DMG
+- Open the `dist/Private News Reader-X.X.X.dmg` file.
+- Drag the app to your `Applications` folder.
+
+### 3. Handling Gatekeeper (Unsigned Builds)
+Since this is a private project, the build is likely unsigned. If macOS blocks it:
+1. Right-click (or Control-click) the app in your Applications folder.
+2. Select **Open**.
+3. In the dialog that appears, click **Open** again.
+4. You only need to do this once.
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `⌘+j`/`k` | Navigate articles |
+| `⌘+o` | Open current article in system browser |
+| `⌘+s` | Toggle star (bookmark) |
+| `⌘+r` | Refresh all feeds |
+| `⌘+a` (Mac) / `Ctrl+a` | Toggle "Add Feed" form |
+| `⌘+d` (Mac) / `Ctrl+d` | Toggle "Add Folder" form |
 
 ## Architecture
 

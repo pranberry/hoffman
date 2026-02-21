@@ -68,6 +68,14 @@ function createTables(): void {
       added_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+
+    -- Seed default settings
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('refresh_interval', '300'); -- 5 minutes in seconds
+
     -- Indexes for common queries
     CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
     CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
