@@ -17,6 +17,7 @@ const api = {
     list: () => ipcRenderer.invoke('feeds:list'),
     add: (url: string, folderId: number | null) => ipcRenderer.invoke('feeds:add', url, folderId),
     remove: (id: number) => ipcRenderer.invoke('feeds:remove', id),
+    rename: (id: number, title: string) => ipcRenderer.invoke('feeds:rename', id, title),
     move: (id: number, folderId: number | null) => ipcRenderer.invoke('feeds:move', id, folderId),
     refresh: (feedId?: number) => ipcRenderer.invoke('feeds:refresh', feedId),
   },

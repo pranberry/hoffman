@@ -17,6 +17,10 @@ export function RssPanel() {
   const [selectedArticleIndex, setSelectedArticleIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
 
+  // Sidebar form visibility — lifted here so hotkeys can toggle them
+  const [showAddFeedForm, setShowAddFeedForm] = useState(false);
+  const [showAddFolderForm, setShowAddFolderForm] = useState(false);
+
   const sidebar = useResizable({ initialWidth: 220, minWidth: 140, maxWidth: 360, storageKey: 'sidebar-width' });
   const articleList = useResizable({ initialWidth: 300, minWidth: 200, maxWidth: 600, storageKey: 'articlelist-width' });
 
@@ -104,6 +108,16 @@ export function RssPanel() {
     await loadArticles();
   }, [selectedFeedId, loadSidebar, loadArticles]);
 
+  const handleRenameFeed = useCallback(async (id: number, title: string) => {
+    await window.api.feeds.rename(id, title);
+    await loadSidebar();
+  }, [loadSidebar]);
+
+  const handleMoveFeed = useCallback(async (id: number, folderId: number | null) => {
+    await window.api.feeds.move(id, folderId);
+    await loadSidebar();
+  }, [loadSidebar]);
+
   const handleAddFolder = useCallback(async (name: string) => {
     await window.api.folders.create(name);
     await loadSidebar();
@@ -170,6 +184,20 @@ export function RssPanel() {
           if (current) handleToggleStar(current.id);
           break;
         }
+        case 'f': {
+          // Toggle add feed form
+          e.preventDefault();
+          setShowAddFolderForm(false);
+          setShowAddFeedForm(prev => !prev);
+          break;
+        }
+        case 'd': {
+          // Toggle add folder form
+          e.preventDefault();
+          setShowAddFeedForm(false);
+          setShowAddFolderForm(prev => !prev);
+          break;
+        }
       }
     };
 
@@ -187,12 +215,18 @@ export function RssPanel() {
           selectedFeedId={selectedFeedId}
           selectedFolderId={selectedFolderId}
           showStarred={showStarred}
+          showAddFeedForm={showAddFeedForm}
+          showAddFolderForm={showAddFolderForm}
+          onShowAddFeed={setShowAddFeedForm}
+          onShowAddFolder={setShowAddFolderForm}
           onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFolderId(null); setShowStarred(false); }}
           onSelectFolder={(id) => { setSelectedFolderId(id); setSelectedFeedId(null); setShowStarred(false); }}
           onSelectStarred={() => { setShowStarred(true); setSelectedFeedId(null); setSelectedFolderId(null); }}
           onSelectAll={() => { setSelectedFeedId(null); setSelectedFolderId(null); setShowStarred(false); }}
           onAddFeed={handleAddFeed}
           onRemoveFeed={handleRemoveFeed}
+          onRenameFeed={handleRenameFeed}
+          onMoveFeed={handleMoveFeed}
           onAddFolder={handleAddFolder}
           onDeleteFolder={handleDeleteFolder}
           onRefresh={handleRefresh}

@@ -2,10 +2,15 @@ import Parser from 'rss-parser';
 import { getDb } from './database';
 import type { Feed, Article, Folder } from '../shared/types';
 
+// Use a realistic browser User-Agent — many RSS servers (Akamai, Cloudflare)
+// block requests with bot-like UAs. This won't bypass full bot detection
+// (e.g. Akamai Ghost) but handles simple UA checks.
 const parser = new Parser({
-  timeout: 10000,
+  timeout: 15000,
   headers: {
-    'User-Agent': 'PrivateNewsReader/1.0',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+    'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
   },
 });
 
@@ -64,7 +69,12 @@ export async function addFeed(url: string, folderId: number | null): Promise<Fee
   try {
     feedData = await parser.parseURL(url);
   } catch (err) {
-    throw new Error(`Failed to fetch feed: ${err instanceof Error ? err.message : String(err)}`);
+    const msg = err instanceof Error ? err.message : String(err);
+    // Provide a clearer error for common HTTP errors
+    if (msg.includes('Status code 403')) {
+      throw new Error(`403 Forbidden — this feed's server blocks automated requests. You may need to find an alternative RSS URL for this source.`);
+    }
+    throw new Error(`Failed to fetch feed: ${msg}`);
   }
 
   const title = feedData.title || url;
@@ -92,6 +102,12 @@ export async function addFeed(url: string, folderId: number | null): Promise<Fee
 export function removeFeed(id: number): void {
   const db = getDb();
   db.prepare('DELETE FROM feeds WHERE id = ?').run(id);
+}
+
+export function renameFeed(id: number, title: string): Feed {
+  const db = getDb();
+  db.prepare('UPDATE feeds SET title = ? WHERE id = ?').run(title, id);
+  return rowToFeed(db.prepare('SELECT * FROM feeds WHERE id = ?').get(id) as Record<string, unknown>);
 }
 
 export function moveFeed(id: number, folderId: number | null): void {
@@ -153,10 +169,11 @@ export async function refreshFeed(feedId: number): Promise<Article[]> {
   try {
     const feedData = await parser.parseURL(feed.url as string);
 
-    // Update feed metadata
+    // Only update title if user hasn't manually renamed it
+    // (we check if current title differs from the original feed title)
     db.prepare(
-      'UPDATE feeds SET title = ?, description = ?, site_url = ?, last_fetched_at = datetime(\'now\'), error_message = NULL WHERE id = ?'
-    ).run(feedData.title || feed.url, feedData.description || '', feedData.link || '', feedId);
+      'UPDATE feeds SET description = ?, site_url = ?, last_fetched_at = datetime(\'now\'), error_message = NULL WHERE id = ?'
+    ).run(feedData.description || '', feedData.link || '', feedId);
 
     insertArticles(feedId, feedData.items || []);
   } catch (err) {
@@ -170,7 +187,6 @@ export async function refreshFeed(feedId: number): Promise<Article[]> {
 export async function refreshAllFeeds(): Promise<Article[]> {
   const feeds = listFeeds();
   const results = await Promise.allSettled(feeds.map(f => refreshFeed(f.id)));
-  // Flatten all successfully fetched articles
   const articles: Article[] = [];
   for (const result of results) {
     if (result.status === 'fulfilled') {
@@ -180,7 +196,7 @@ export async function refreshAllFeeds(): Promise<Article[]> {
   return articles;
 }
 
-export function listArticles(feedId?: number, folderId?: number): Article[] {
+export function listArticles(feedId?: number, folderId?: number, limit?: number): Article[] {
   const db = getDb();
   let query = 'SELECT a.* FROM articles a';
   const params: unknown[] = [];
@@ -194,6 +210,11 @@ export function listArticles(feedId?: number, folderId?: number): Article[] {
   }
 
   query += ' ORDER BY a.published_at DESC';
+
+  if (limit) {
+    query += ' LIMIT ?';
+    params.push(limit);
+  }
 
   const rows = db.prepare(query).all(...params) as Record<string, unknown>[];
   return rows.map(rowToArticle);

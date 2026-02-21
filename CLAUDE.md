@@ -61,6 +61,8 @@ A privacy-first macOS desktop app for reading RSS feeds and tracking stocks. Bui
 - `o` — open in browser
 - `s` — toggle star
 - `r` — refresh feeds
+- `f` — toggle add feed form
+- `d` — toggle add folder form
 
 ## Commands
 - `npm install` — install dependencies

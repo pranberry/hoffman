@@ -88,6 +88,7 @@ export interface IpcChannels {
   'feeds:list': () => Feed[];
   'feeds:add': (url: string, folderId: number | null) => Feed;
   'feeds:remove': (id: number) => void;
+  'feeds:rename': (id: number, title: string) => Feed;
   'feeds:refresh': (id?: number) => Article[];
   'feeds:move': (id: number, folderId: number | null) => void;
 

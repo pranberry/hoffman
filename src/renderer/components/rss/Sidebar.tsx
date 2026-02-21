@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Folder, Feed } from '../../../shared/types';
 
 interface SidebarProps {
@@ -7,26 +7,138 @@ interface SidebarProps {
   selectedFeedId: number | null;
   selectedFolderId: number | null;
   showStarred: boolean;
+  showAddFeedForm: boolean;
+  showAddFolderForm: boolean;
+  onShowAddFeed: (show: boolean) => void;
+  onShowAddFolder: (show: boolean) => void;
   onSelectFeed: (feedId: number | null) => void;
   onSelectFolder: (folderId: number | null) => void;
   onSelectStarred: () => void;
   onSelectAll: () => void;
   onAddFeed: (url: string, folderId: number | null) => void;
   onRemoveFeed: (id: number) => void;
+  onRenameFeed: (id: number, title: string) => void;
+  onMoveFeed: (id: number, folderId: number | null) => void;
   onAddFolder: (name: string) => void;
   onDeleteFolder: (id: number) => void;
   onRefresh: () => void;
 }
 
+// ── Inline editable feed name ──
+function EditableFeedName({
+  feed,
+  isSelected,
+  indented,
+  onSelect,
+  onRename,
+}: {
+  feed: Feed;
+  isSelected: boolean;
+  indented: boolean;
+  onSelect: () => void;
+  onRename: (title: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(feed.title || feed.url);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.select();
+  }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== feed.title) {
+      onRename(trimmed);
+    } else {
+      setValue(feed.title || feed.url);
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') commit();
+          if (e.key === 'Escape') { setValue(feed.title || feed.url); setEditing(false); }
+        }}
+        className={`w-full ${indented ? 'pl-6 pr-2' : 'px-3'} py-1 text-sm rounded border border-blue-400 bg-white dark:bg-gray-800 focus:outline-none`}
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={onSelect}
+      onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      className={`flex-1 text-left ${indented ? 'pl-6 pr-3' : 'px-3'} py-1.5 rounded text-sm truncate ${
+        isSelected ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
+      }`}
+      title="Double-click to rename"
+    >
+      {feed.title || feed.url}
+      {feed.errorMessage && <span className="ml-1 text-red-400" title={feed.errorMessage}>!</span>}
+    </button>
+  );
+}
+
+// ── Draggable feed row ──
+function DraggableFeed({
+  feed,
+  isSelected,
+  indented,
+  onSelect,
+  onRemove,
+  onRename,
+}: {
+  feed: Feed;
+  isSelected: boolean;
+  indented: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  onRename: (title: string) => void;
+}) {
+  return (
+    <div
+      className="flex items-center group"
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData('application/x-feed-id', String(feed.id));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+    >
+      <EditableFeedName
+        feed={feed}
+        isSelected={isSelected}
+        indented={indented}
+        onSelect={onSelect}
+        onRename={onRename}
+      />
+      <button
+        onClick={onRemove}
+        className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
+        title="Remove feed"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 export function Sidebar({
   folders, feeds, selectedFeedId, selectedFolderId, showStarred,
+  showAddFeedForm, showAddFolderForm, onShowAddFeed, onShowAddFolder,
   onSelectFeed, onSelectFolder, onSelectStarred, onSelectAll,
-  onAddFeed, onRemoveFeed, onAddFolder, onDeleteFolder, onRefresh,
+  onAddFeed, onRemoveFeed, onRenameFeed, onMoveFeed, onAddFolder, onDeleteFolder, onRefresh,
 }: SidebarProps) {
-  const [showAddFeed, setShowAddFeed] = useState(false);
   const [feedUrl, setFeedUrl] = useState('');
   const [feedFolderId, setFeedFolderId] = useState<number | null>(null);
-  const [showAddFolder, setShowAddFolder] = useState(false);
   const [folderName, setFolderName] = useState('');
 
   const handleAddFeed = (e: React.FormEvent) => {
@@ -34,7 +146,7 @@ export function Sidebar({
     if (feedUrl.trim()) {
       onAddFeed(feedUrl.trim(), feedFolderId);
       setFeedUrl('');
-      setShowAddFeed(false);
+      onShowAddFeed(false);
     }
   };
 
@@ -43,9 +155,29 @@ export function Sidebar({
     if (folderName.trim()) {
       onAddFolder(folderName.trim());
       setFolderName('');
-      setShowAddFolder(false);
+      onShowAddFolder(false);
     }
   };
+
+  // ── Drop handler for folders ──
+  const makeFolderDropHandlers = useCallback((folderId: number | null) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (e.dataTransfer.types.includes('application/x-feed-id')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        (e.currentTarget as HTMLElement).classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+      }
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      (e.currentTarget as HTMLElement).classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      (e.currentTarget as HTMLElement).classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+      const feedId = Number(e.dataTransfer.getData('application/x-feed-id'));
+      if (feedId) onMoveFeed(feedId, folderId);
+    },
+  }), [onMoveFeed]);
 
   const unfolderedFeeds = feeds.filter(f => f.folderId === null);
   const isAllSelected = !selectedFeedId && !selectedFolderId && !showStarred;
@@ -80,13 +212,18 @@ export function Sidebar({
 
         <div className="border-t border-gray-200 dark:border-gray-800 my-2" />
 
-        {/* Folders */}
+        {/* Folders — each is a drop target */}
         {folders.map(folder => {
           const folderFeeds = feeds.filter(f => f.folderId === folder.id);
           const isFolderSelected = selectedFolderId === folder.id;
+          const dropHandlers = makeFolderDropHandlers(folder.id);
 
           return (
-            <div key={folder.id}>
+            <div
+              key={folder.id}
+              {...dropHandlers}
+              className="rounded transition-colors"
+            >
               <div className="flex items-center group">
                 <button
                   onClick={() => onSelectFolder(folder.id)}
@@ -101,59 +238,49 @@ export function Sidebar({
                   className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
                   title="Delete folder"
                 >
-                  x
+                  ×
                 </button>
               </div>
               {folderFeeds.map(feed => (
-                <div key={feed.id} className="flex items-center group">
-                  <button
-                    onClick={() => onSelectFeed(feed.id)}
-                    className={`flex-1 text-left pl-6 pr-3 py-1 rounded text-sm truncate ${
-                      selectedFeedId === feed.id ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    {feed.title || feed.url}
-                    {feed.errorMessage && <span className="ml-1 text-red-400" title={feed.errorMessage}>!</span>}
-                  </button>
-                  <button
-                    onClick={() => onRemoveFeed(feed.id)}
-                    className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
-                    title="Remove feed"
-                  >
-                    x
-                  </button>
-                </div>
+                <DraggableFeed
+                  key={feed.id}
+                  feed={feed}
+                  isSelected={selectedFeedId === feed.id}
+                  indented
+                  onSelect={() => onSelectFeed(feed.id)}
+                  onRemove={() => onRemoveFeed(feed.id)}
+                  onRename={(title) => onRenameFeed(feed.id, title)}
+                />
               ))}
             </div>
           );
         })}
 
-        {/* Unfoldered feeds */}
-        {unfolderedFeeds.map(feed => (
-          <div key={feed.id} className="flex items-center group">
-            <button
-              onClick={() => onSelectFeed(feed.id)}
-              className={`flex-1 text-left px-3 py-1.5 rounded text-sm truncate ${
-                selectedFeedId === feed.id ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
-              }`}
-            >
-              {feed.title || feed.url}
-              {feed.errorMessage && <span className="ml-1 text-red-400" title={feed.errorMessage}>!</span>}
-            </button>
-            <button
-              onClick={() => onRemoveFeed(feed.id)}
-              className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
-              title="Remove feed"
-            >
-              x
-            </button>
-          </div>
-        ))}
+        {/* Unfoldered feeds — drop zone to remove from folder */}
+        <div
+          {...makeFolderDropHandlers(null)}
+          className="rounded transition-colors"
+        >
+          {folders.length > 0 && unfolderedFeeds.length > 0 && (
+            <div className="border-t border-gray-200 dark:border-gray-800 my-2" />
+          )}
+          {unfolderedFeeds.map(feed => (
+            <DraggableFeed
+              key={feed.id}
+              feed={feed}
+              isSelected={selectedFeedId === feed.id}
+              indented={false}
+              onSelect={() => onSelectFeed(feed.id)}
+              onRemove={() => onRemoveFeed(feed.id)}
+              onRename={(title) => onRenameFeed(feed.id, title)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Bottom actions */}
       <div className="p-2 border-t border-gray-200 dark:border-gray-800 space-y-2">
-        {showAddFeed && (
+        {showAddFeedForm && (
           <form onSubmit={handleAddFeed} className="space-y-2">
             <input
               type="url"
@@ -175,12 +302,12 @@ export function Sidebar({
             </select>
             <div className="flex gap-1">
               <button type="submit" className="flex-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">Add</button>
-              <button type="button" onClick={() => setShowAddFeed(false)} className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
+              <button type="button" onClick={() => onShowAddFeed(false)} className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
             </div>
           </form>
         )}
 
-        {showAddFolder && (
+        {showAddFolderForm && (
           <form onSubmit={handleAddFolder} className="space-y-2">
             <input
               type="text"
@@ -192,21 +319,21 @@ export function Sidebar({
             />
             <div className="flex gap-1">
               <button type="submit" className="flex-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">Create</button>
-              <button type="button" onClick={() => setShowAddFolder(false)} className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
+              <button type="button" onClick={() => onShowAddFolder(false)} className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
             </div>
           </form>
         )}
 
-        {!showAddFeed && !showAddFolder && (
+        {!showAddFeedForm && !showAddFolderForm && (
           <div className="flex gap-1">
             <button
-              onClick={() => setShowAddFeed(true)}
+              onClick={() => onShowAddFeed(true)}
               className="flex-1 px-2 py-1.5 text-xs bg-gray-200 dark:bg-gray-800 rounded hover:bg-gray-300 dark:hover:bg-gray-700"
             >
               + Feed
             </button>
             <button
-              onClick={() => setShowAddFolder(true)}
+              onClick={() => onShowAddFolder(true)}
               className="flex-1 px-2 py-1.5 text-xs bg-gray-200 dark:bg-gray-800 rounded hover:bg-gray-300 dark:hover:bg-gray-700"
             >
               + Folder

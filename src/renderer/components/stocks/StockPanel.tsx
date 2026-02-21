@@ -196,6 +196,20 @@ export function StockPanel() {
                           {detail.numberOfAnalystOpinions != null && <DetailRow label="# Analysts" value={String(detail.numberOfAnalystOpinions)} />}
                         </>
                       )}
+
+                      {/* FinViz link — discrete button at bottom of detail */}
+                      <div className="mt-2 pt-1 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.api.shell.openExternal(`https://finviz.com/quote.ashx?t=${detail.symbol}`);
+                          }}
+                          className="text-[10px] text-gray-400 hover:text-blue-500 transition-colors"
+                          title={`View ${detail.symbol} on FinViz`}
+                        >
+                          FinViz →
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-gray-400 text-center py-2">Could not load details</p>
