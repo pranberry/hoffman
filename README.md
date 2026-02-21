@@ -48,6 +48,65 @@ Most news readers today are filled with tracking pixels, targeted ads, and "reco
 
 **Built with ❤️ for privacy enthusiasts.** If you like this project, feel free to share it with others who value digital autonomy.
 
+## Installation
+
+### Prerequisites
+- **Node.js 20+**
+- **npm**
+
+### Setup
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Rebuild native modules (SQLite):
+   ```bash
+   npm run postinstall
+   ```
+
+## Development
+
+```bash
+npm run dev
+```
+
+This builds the main process, then starts three concurrent processes:
+1. TypeScript compiler watching `src/main/`
+2. Vite dev server for the React renderer
+3. Electron loading from localhost
+
+To run the automated test suite:
+```bash
+npm run test
+```
+
+## Packaging
+
+### macOS (DMG)
+To generate a production-ready `.dmg` file:
+```bash
+npm run build          # Runs tests, builds main and renderer
+npm run dist           # Packages into a .dmg in the /release folder
+```
+
+The resulting file will be in `release/Hoffman Reader-X.X.X.dmg`.
+
+*Note: Since these builds are usually unsigned, you may need to right-click the app and select "Open" the first time you run it to bypass macOS Gatekeeper.*
+
+### Windows & Linux
+While Hoffman Reader is designed with a macOS-native aesthetic (hidden title bar, etc.), it is compatible with Windows and Linux. To package for these platforms, you can use the following commands:
+
+**Windows:**
+```bash
+npx electron-builder --win portable  # Creates a portable .exe
+```
+
+**Linux:**
+```bash
+npx electron-builder --linux AppImage # Creates an AppImage
+```
+
 ## Architecture
 
 ```

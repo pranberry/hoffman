@@ -50,6 +50,14 @@
       "target": "dmg",
       "icon": "build/icon.png"
     },
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png"
+    },
     "dmg": {
       "title": "Hoffman Reader"
     },
