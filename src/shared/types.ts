@@ -108,6 +108,7 @@ export interface IpcChannels {
   // Stocks
   'stocks:watchlist': () => WatchlistItem[];
   'stocks:add': (symbol: string) => WatchlistItem;
+  'stocks:validate': (symbol: string) => boolean;
   'stocks:remove': (id: number) => void;
   'stocks:quotes': () => StockQuote[];
   'stocks:detail': (symbol: string) => StockDetail;

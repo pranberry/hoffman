@@ -44,6 +44,7 @@ const api = {
   stocks: {
     watchlist: () => ipcRenderer.invoke('stocks:watchlist'),
     add: (symbol: string) => ipcRenderer.invoke('stocks:add', symbol),
+    validate: (symbol: string) => ipcRenderer.invoke('stocks:validate', symbol),
     remove: (id: number) => ipcRenderer.invoke('stocks:remove', id),
     quotes: () => ipcRenderer.invoke('stocks:quotes'),
     detail: (symbol: string) => ipcRenderer.invoke('stocks:detail', symbol),

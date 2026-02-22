@@ -52,6 +52,17 @@ export async function addToWatchlist(symbol: string): Promise<WatchlistItem> {
   );
 }
 
+export async function validateStock(symbol: string): Promise<boolean> {
+  if (!symbol.trim()) return false;
+  try {
+    const yf = await getYahooFinance();
+    const quote = await yf.quote(symbol.toUpperCase().trim());
+    return !!quote;
+  } catch {
+    return false;
+  }
+}
+
 export function removeFromWatchlist(id: number): void {
   const db = getDb();
   db.prepare('DELETE FROM watchlist WHERE id = ?').run(id);

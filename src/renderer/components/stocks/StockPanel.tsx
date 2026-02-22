@@ -31,6 +31,8 @@ export function StockPanel({ width, showAdd, onShowAdd }: { width: number; showA
   const [localShowAdd, setLocalShowAdd] = useState(false);
   const [symbol, setSymbol] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Sync internal state with prop if provided
   const isAdding = showAdd !== undefined ? showAdd : localShowAdd;
@@ -43,6 +45,29 @@ export function StockPanel({ width, showAdd, onShowAdd }: { width: number; showA
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; right: number; flip: boolean } | null>(null);
 
   const isCollapsed = width < 160;
+
+  // Validation effect
+  useEffect(() => {
+    if (!symbol.trim()) {
+      setIsValid(null);
+      setIsValidating(false);
+      return;
+    }
+
+    setIsValidating(true);
+    const timer = setTimeout(async () => {
+      try {
+        const valid = await window.api.stocks.validate(symbol);
+        setIsValid(valid);
+      } catch {
+        setIsValid(false);
+      } finally {
+        setIsValidating(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [symbol]);
 
   const loadWatchlist = useCallback(async () => {
     const items = await window.api.stocks.watchlist();
@@ -275,7 +300,10 @@ export function StockPanel({ width, showAdd, onShowAdd }: { width: number; showA
                 placeholder="Symbol (e.g. AAPL)..."
                 value={symbol}
                 onChange={e => setSymbol(e.target.value)}
-                className="w-full px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  symbol && isValid === true ? 'text-cyan-600 dark:text-cyan-400 font-bold' : 
+                  symbol && isValid === false ? 'text-orange-600 dark:text-orange-400' : ''
+                }`}
                 autoFocus
               />
             )}
@@ -285,14 +313,26 @@ export function StockPanel({ width, showAdd, onShowAdd }: { width: number; showA
                placeholder="SYM"
                value={symbol}
                onChange={e => setSymbol(e.target.value)}
-               className="w-full px-1 py-0.5 text-[10px] rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+               className={`w-full px-1 py-0.5 text-[10px] rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 ${
+                symbol && isValid === true ? 'text-cyan-600 dark:text-cyan-400 font-bold' : 
+                symbol && isValid === false ? 'text-orange-600 dark:text-orange-400' : ''
+              }`}
                autoFocus
              />
             )}
             <div className="flex gap-1">
-              <button type="submit" className="flex-1 px-1 py-1 text-[10px] bg-blue-600 text-white rounded hover:bg-blue-700">{isCollapsed ? '+' : 'Add'}</button>
-              <button type="button" onClick={() => { setAdding(false); setError(null); }} className="px-1 py-1 text-[10px] bg-gray-200 dark:bg-gray-700 rounded">x</button>
+              <button 
+                type="submit" 
+                disabled={isValid !== true || isValidating}
+                className={`flex-1 px-1 py-1 text-[10px] text-white rounded transition-colors ${
+                  isValid === true ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+                }`}
+              >
+                {isValidating ? '...' : (isCollapsed ? '+' : 'Add')}
+              </button>
+              <button type="button" onClick={() => { setAdding(false); setError(null); setSymbol(''); }} className="px-1 py-1 text-[10px] bg-gray-200 dark:bg-gray-700 rounded">x</button>
             </div>
+            {error && <div className="text-[10px] text-red-500 mt-1 px-1">{error}</div>}
           </form>
         ) : (
           <div className="flex gap-1">

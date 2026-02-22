@@ -6,7 +6,7 @@ import {
   toggleStar, listStarredArticles, refreshFeed, refreshAllFeeds,
 } from './feeds';
 import {
-  getWatchlist, addToWatchlist, removeFromWatchlist,
+  getWatchlist, addToWatchlist, validateStock, removeFromWatchlist,
   reorderWatchlist, fetchQuotes, fetchStockDetail,
 } from './stocks';
 import { getSetting, setSetting, listSettings } from './settings';
@@ -47,6 +47,7 @@ export function registerIpcHandlers(): void {
   // ── Stocks ──
   ipcMain.handle('stocks:watchlist', () => getWatchlist());
   ipcMain.handle('stocks:add', (_e, symbol: string) => addToWatchlist(symbol));
+  ipcMain.handle('stocks:validate', (_e, symbol: string) => validateStock(symbol));
   ipcMain.handle('stocks:remove', (_e, id: number) => removeFromWatchlist(id));
   ipcMain.handle('stocks:quotes', () => fetchQuotes());
   ipcMain.handle('stocks:detail', (_e, symbol: string) => fetchStockDetail(symbol));
