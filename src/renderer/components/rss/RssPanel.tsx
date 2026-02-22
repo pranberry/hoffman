@@ -7,7 +7,21 @@ import { Spinner } from '../common/Spinner';
 import { SettingsPanel } from '../common/SettingsPanel';
 import { useResizable } from '../../hooks/useResizable';
 
-export function RssPanel({ parentWidth }: { parentWidth: number }) {
+export function RssPanel({ 
+  parentWidth,
+  showAddFeed,
+  onShowAddFeed,
+  showAddFolder,
+  onShowAddFolder,
+  triggerStar,
+}: { 
+  parentWidth: number;
+  showAddFeed: boolean;
+  onShowAddFeed: (show: boolean) => void;
+  showAddFolder: boolean;
+  onShowAddFolder: (show: boolean) => void;
+  triggerStar?: number;
+}) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -19,12 +33,20 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
   const [loading, setLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  // Sidebar form visibility — lifted here so hotkeys can toggle them
-  const [showAddFeedForm, setShowAddFeedForm] = useState(false);
-  const [showAddFolderForm, setShowAddFolderForm] = useState(false);
-
   const sidebar = useResizable({ initialWidth: 220, minWidth: 140, maxWidth: 360, storageKey: 'sidebar-width' });
   const articleList = useResizable({ initialWidth: 300, minWidth: 200, maxWidth: 600, storageKey: 'articlelist-width' });
+
+  // Handle star trigger from parent
+  useEffect(() => {
+    if (triggerStar && triggerStar > 0) {
+      const idx = selectedIndexRef.current;
+      const arts = articlesRef.current;
+      const current = idx >= 0 ? arts[idx] : null;
+      if (current) {
+        handleToggleStar(current.id);
+      }
+    }
+  }, [triggerStar]);
 
   // Responsive logic
   const showSidebar = parentWidth > 600;
@@ -127,6 +149,11 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
     await loadSidebar();
   }, [loadSidebar]);
 
+  const handleUpdateFeedUrl = useCallback(async (id: number, url: string) => {
+    await window.api.feeds.updateUrl(id, url);
+    await loadSidebar();
+  }, [loadSidebar]);
+
   const handleMoveFeed = useCallback(async (id: number, folderId: number | null) => {
     await window.api.feeds.move(id, folderId);
     await loadSidebar();
@@ -159,22 +186,6 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isCmd = e.metaKey || e.ctrlKey;
       const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
-
-      // Handle toggles first - ensure cmd+a is intercepted before browser select all
-      if (e.key === 'a' && isCmd) {
-        if (isInput) return; // Allow standard Select All in inputs
-        e.preventDefault();
-        setShowAddFolderForm(false);
-        setShowAddFeedForm(prev => !prev);
-        return;
-      }
-
-      if (e.key === 'd' && isCmd) {
-        e.preventDefault();
-        setShowAddFeedForm(false);
-        setShowAddFolderForm(prev => !prev);
-        return;
-      }
 
       // Don't handle other shortcuts if user is typing in an input
       if (isInput) {
@@ -209,26 +220,10 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
           }
           break;
         }
-        case 'o': {
-          if (isCmd) {
-            e.preventDefault();
-            const current = idx >= 0 ? arts[idx] : null;
-            if (current?.link) handleOpenInBrowser(current.link);
-          }
-          break;
-        }
         case 'r': {
           if (isCmd) {
             e.preventDefault();
             handleRefresh();
-          }
-          break;
-        }
-        case 's': {
-          if (isCmd) {
-            e.preventDefault();
-            const current = idx >= 0 ? arts[idx] : null;
-            if (current) handleToggleStar(current.id);
           }
           break;
         }
@@ -250,10 +245,10 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
             selectedFeedId={selectedFeedId}
             selectedFolderId={selectedFolderId}
             showStarred={showStarred}
-            showAddFeedForm={showAddFeedForm}
-            showAddFolderForm={showAddFolderForm}
-            onShowAddFeed={setShowAddFeedForm}
-            onShowAddFolder={setShowAddFolderForm}
+            showAddFeedForm={showAddFeed}
+            showAddFolderForm={showAddFolder}
+            onShowAddFeed={onShowAddFeed}
+            onShowAddFolder={onShowAddFolder}
             onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFolderId(null); setShowStarred(false); }}
             onSelectFolder={(id) => { setSelectedFolderId(id); setSelectedFeedId(null); setShowStarred(false); }}
             onSelectStarred={() => { setShowStarred(true); setSelectedFeedId(null); setSelectedFolderId(null); }}
@@ -261,6 +256,7 @@ export function RssPanel({ parentWidth }: { parentWidth: number }) {
             onAddFeed={handleAddFeed}
             onRemoveFeed={handleRemoveFeed}
             onRenameFeed={handleRenameFeed}
+            onUpdateFeedUrl={handleUpdateFeedUrl}
             onMoveFeed={handleMoveFeed}
             onAddFolder={handleAddFolder}
             onDeleteFolder={handleDeleteFolder}

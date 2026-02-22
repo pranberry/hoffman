@@ -18,6 +18,7 @@ interface SidebarProps {
   onAddFeed: (url: string, folderId: number | null) => void;
   onRemoveFeed: (id: number) => void;
   onRenameFeed: (id: number, title: string) => void;
+  onUpdateFeedUrl: (id: number, url: string) => void;
   onMoveFeed: (id: number, folderId: number | null) => void;
   onAddFolder: (name: string) => void;
   onDeleteFolder: (id: number) => void;
@@ -25,36 +26,44 @@ interface SidebarProps {
   onShowSettings: () => void;
 }
 
-// ── Inline editable feed name ──
+// ── Inline editable feed name/URL ──
 function EditableFeedName({
   feed,
   isSelected,
   indented,
   onSelect,
   onRename,
+  onUpdateUrl,
 }: {
   feed: Feed;
   isSelected: boolean;
   indented: boolean;
   onSelect: () => void;
   onRename: (title: string) => void;
+  onUpdateUrl: (url: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(feed.title || feed.url);
+  const [editing, setEditing] = useState<'title' | 'url' | null>(null);
+  const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (editing) inputRef.current?.select();
+    if (editing) {
+      inputRef.current?.select();
+    }
   }, [editing]);
 
   const commit = () => {
-    setEditing(false);
     const trimmed = value.trim();
-    if (trimmed && trimmed !== feed.title) {
-      onRename(trimmed);
-    } else {
-      setValue(feed.title || feed.url);
+    if (editing === 'title') {
+      if (trimmed && trimmed !== feed.title) {
+        onRename(trimmed);
+      }
+    } else if (editing === 'url') {
+      if (trimmed && trimmed !== feed.url) {
+        onUpdateUrl(trimmed);
+      }
     }
+    setEditing(null);
   };
 
   if (editing) {
@@ -66,8 +75,9 @@ function EditableFeedName({
         onBlur={commit}
         onKeyDown={e => {
           if (e.key === 'Enter') commit();
-          if (e.key === 'Escape') { setValue(feed.title || feed.url); setEditing(false); }
+          if (e.key === 'Escape') { setEditing(null); }
         }}
+        placeholder={editing === 'url' ? 'https://...' : 'Feed title...'}
         className={`w-full ${indented ? 'pl-6 pr-2' : 'px-3'} py-1 text-sm rounded border border-blue-400 bg-white dark:bg-gray-800 focus:outline-none`}
         autoFocus
       />
@@ -76,12 +86,23 @@ function EditableFeedName({
 
   return (
     <button
-      onClick={onSelect}
-      onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      onClick={(e) => {
+        onSelect();
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setValue(feed.url);
+        setEditing('url');
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        setValue(feed.title || feed.url);
+        setEditing('title');
+      }}
       className={`flex-1 text-left ${indented ? 'pl-6 pr-3' : 'px-3'} py-1.5 rounded text-sm truncate ${
         isSelected ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
       }`}
-      title="Double-click to rename"
+      title="Double-click to rename, Right-click to edit URL"
     >
       {feed.title || feed.url}
       {feed.errorMessage && <span className="ml-1 text-red-400" title={feed.errorMessage}>!</span>}
@@ -97,6 +118,7 @@ function DraggableFeed({
   onSelect,
   onRemove,
   onRename,
+  onUpdateUrl,
 }: {
   feed: Feed;
   isSelected: boolean;
@@ -104,6 +126,7 @@ function DraggableFeed({
   onSelect: () => void;
   onRemove: () => void;
   onRename: (title: string) => void;
+  onUpdateUrl: (url: string) => void;
 }) {
   return (
     <div
@@ -120,6 +143,7 @@ function DraggableFeed({
         indented={indented}
         onSelect={onSelect}
         onRename={onRename}
+        onUpdateUrl={onUpdateUrl}
       />
       <button
         onClick={onRemove}
@@ -136,7 +160,7 @@ export function Sidebar({
   folders, feeds, selectedFeedId, selectedFolderId, showStarred,
   showAddFeedForm, showAddFolderForm, onShowAddFeed, onShowAddFolder,
   onSelectFeed, onSelectFolder, onSelectStarred, onSelectAll,
-  onAddFeed, onRemoveFeed, onRenameFeed, onMoveFeed, onAddFolder, onDeleteFolder, onRefresh,
+  onAddFeed, onRemoveFeed, onRenameFeed, onUpdateFeedUrl, onMoveFeed, onAddFolder, onDeleteFolder, onRefresh,
   onShowSettings,
 }: SidebarProps) {
   const [feedUrl, setFeedUrl] = useState('');
@@ -252,6 +276,7 @@ export function Sidebar({
                   onSelect={() => onSelectFeed(feed.id)}
                   onRemove={() => onRemoveFeed(feed.id)}
                   onRename={(title) => onRenameFeed(feed.id, title)}
+                  onUpdateUrl={(url) => onUpdateFeedUrl(feed.id, url)}
                 />
               ))}
             </div>
@@ -275,6 +300,7 @@ export function Sidebar({
               onSelect={() => onSelectFeed(feed.id)}
               onRemove={() => onRemoveFeed(feed.id)}
               onRename={(title) => onRenameFeed(feed.id, title)}
+              onUpdateUrl={(url) => onUpdateFeedUrl(feed.id, url)}
             />
           ))}
         </div>

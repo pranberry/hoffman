@@ -111,6 +111,12 @@ export function renameFeed(id: number, title: string): Feed {
   return rowToFeed(db.prepare('SELECT * FROM feeds WHERE id = ?').get(id) as Record<string, unknown>);
 }
 
+export function updateFeedUrl(id: number, url: string): Feed {
+  const db = getDb();
+  db.prepare('UPDATE feeds SET url = ? WHERE id = ?').run(url, id);
+  return rowToFeed(db.prepare('SELECT * FROM feeds WHERE id = ?').get(id) as Record<string, unknown>);
+}
+
 export function moveFeed(id: number, folderId: number | null): void {
   const db = getDb();
   db.prepare('UPDATE feeds SET folder_id = ? WHERE id = ?').run(folderId, id);

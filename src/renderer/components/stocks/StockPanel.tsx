@@ -167,9 +167,12 @@ export function StockPanel({ width, showAdd, onShowAdd }: { width: number; showA
 
       <div className={`flex-1 overflow-y-auto ${isCollapsed ? 'px-1 py-2' : 'px-3 py-2'}`}>
         {watchlist.length === 0 && !isAdding && !isCollapsed && (
-          <p className="text-xs text-gray-400 text-center py-4">
-            No stocks tracked yet.
-          </p>
+          <div className="py-8 px-2">
+            <p className="text-xs text-gray-400 text-center mb-6">
+              No stocks tracked yet.
+            </p>
+            <TickerLegend />
+          </div>
         )}
 
         {watchlist.map(item => {
@@ -255,6 +258,12 @@ export function StockPanel({ width, showAdd, onShowAdd }: { width: number; showA
             </div>
           );
         })}
+
+        {!isCollapsed && isAdding && (
+          <div className="mt-4 px-1">
+            <TickerLegend />
+          </div>
+        )}
       </div>
 
       <div className="p-2 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
@@ -378,3 +387,38 @@ function StockDetailContent({ detail, loading, onExternal }: { detail: StockDeta
     </div>
   );
 }
+
+function TickerLegend() {
+  const categories = [
+    { label: 'Bonds', symbols: ['^TNX (10Y)', '^TYX (30Y)', '^IRX (13W)'] },
+    { label: 'Commodities', symbols: ['GC=F (Gold)', 'SI=F (Silver)', 'CL=F (Oil)'] },
+    { label: 'Crypto', symbols: ['BTC-USD', 'ETH-USD', 'SOL-USD'] },
+    { label: 'Currencies', symbols: ['EURUSD=X', 'JPY=X', 'GBPUSD=X'] },
+  ];
+
+  return (
+    <div className="p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg border border-gray-100 dark:border-gray-800/50">
+      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 dark:border-gray-800/50 pb-1">
+        Yahoo Finance Guide
+      </div>
+      <div className="grid grid-cols-1 gap-4">
+        {categories.map(cat => (
+          <div key={cat.label}>
+            <div className="text-[10px] text-gray-500 font-semibold mb-1.5 uppercase tracking-tighter">{cat.label}</div>
+            <div className="flex flex-wrap gap-1.5">
+              {cat.symbols.map(s => (
+                <code key={s} className="text-[10px] font-mono bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">
+                  {s}
+                </code>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 text-[9px] text-gray-400 italic">
+        Enter symbol in the add box above.
+      </div>
+    </div>
+  );
+}
+
