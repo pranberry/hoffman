@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A privacy-first RSS reader and stock tracker for macOS",
   "main": "dist/main/main/index.js",
+  "author": "github.com/pranberry",
   "scripts": {
     "dev": "npm run build:main && concurrently \"npm run dev:main\" \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:main": "tsc -p tsconfig.main.json --watch",
