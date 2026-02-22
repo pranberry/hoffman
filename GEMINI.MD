@@ -12,13 +12,14 @@ A privacy-first macOS app for RSS and Stocks.
 ## Architectural Constraints (STRICT)
 1. **The Bridge:** `src/main/preload.ts` is the ONLY entry point for the renderer. Never bypass `window.api`.
 2. **IPC Flow:** Main process handles all Node/System APIs. Renderer is "dumb" UI. 
-3. **Database:** SQLite via `better-sqlite3`. Schema lives in `src/main/database.ts`. Always use WAL mode.
-4. **CSS:** Tailwind v4. No `tailwind.config.js`. Use `@theme` blocks in CSS files for customizations.
+3. **Database:** SQLite via `better-sqlite3`. Schema lives in `src/main/database.ts` (`folders`, `feeds`, `articles`, `watchlist`, `settings`). Always use WAL mode.
+4. **CSS:** Tailwind v4. No `tailwind.config.js`. Use `@theme` blocks or standard Tailwind directives in CSS files for customizations.
 5. **Responsiveness:** Renderer must handle panel collapsing/hiding logic based on `parentWidth` props or window resize events.
+6. **External Links:** Never navigate to external URLs within the app window. Always use `window.api.shell.openExternal` for user-triggered outbound links.
 
 ## Tech Stack Deep-Dive
 - **Runtime:** Electron + Node 20+
-- **Frontend:** React 19 + Vite
+- **Frontend:** React 19 + Vite 6
 - **Data:** better-sqlite3 (Main process only)
 - **Testing:** Vitest (Main process logic only)
 - **API:** yahoo-finance2 (ESM dynamic imports required in main)

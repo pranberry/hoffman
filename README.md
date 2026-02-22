@@ -8,7 +8,7 @@ A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks
 - **Stock Tracker** — Side panel watchlist with live quotes from Yahoo Finance
 - **Intelligent Responsive UI** — Panels automatically shrink or collapse as you resize the window. The stock panel transforms into a compact ticker view.
 - **Backup & Restore** — Export your entire configuration (feeds, folders, stocks) to a portable `.json` file and import it back anytime.
-- **Keyboard-driven** — `⌘+j`/`k` navigate, `⌘+o` opens in browser, `⌘+s` stars, `⌘+r` refreshes, `⌘+t` adds stock
+- **Keyboard-driven** — `⌘+j`/`k` navigate, `⌘+r` refreshes, `⌘+⇧+S` stars, `⌘+⇧+T` adds stock, `⌘+⇧+F` adds feed, `⌘+⇧+D` adds folder
 - **Offline-first** — All data in local SQLite, panels degrade gracefully without network
 - **Dark mode** — Follows macOS system appearance automatically
 - **Private** — No analytics, no tracking, no external resources, strict CSP
@@ -16,9 +16,9 @@ A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks
 ## Usage
 
 ### Managing Feeds & Stocks
-- **Add Feed**: Press `⌘+A` or use the sidebar "+" button.
-- **Add Folder**: Press `⌘+D` or use the sidebar folder icon.
-- **Add Stock**: Press `⌘+T` or use the "+ Add Stock" button in the right panel.
+- **Add Feed**: Press `⌘+⇧+F` or use the sidebar "+" button.
+- **Add Folder**: Press `⌘+⇧+D` or use the sidebar folder icon.
+- **Add Stock**: Press `⌘+⇧+T` or use the "+ Add Stock" button in the right panel.
 - **Export/Import**: Open Settings (⚙ icon in sidebar) to backup your configuration to a `.json` file. This makes it easy to sync between machines or keep a safe copy of your reading list.
 
 ### Responsive Panels
@@ -32,12 +32,11 @@ The UI is designed to stay functional even in narrow windows:
 | Key | Action |
 |-----|--------|
 | `⌘+j` / `⌘+k` | Navigate to next/previous article |
-| `⌘+o` | Open current article in system browser |
-| `⌘+s` | Toggle star (bookmark) |
 | `⌘+r` | Refresh all feeds |
-| `⌘+t` | Toggle "Add Ticker" form |
-| `⌘+a` | Toggle "Add Feed" form |
-| `⌘+d` | Toggle "Add Folder" form |
+| `⌘+⇧+S` | Toggle star (bookmark) |
+| `⌘+⇧+T` | Toggle "Add Ticker" form |
+| `⌘+⇧+F` | Toggle "Add Feed" form |
+| `⌘+⇧+D` | Toggle "Add Folder" form |
 | `Esc` | Close popups or settings |
 
 *Note: Use `Ctrl` instead of `⌘` on Windows/Linux.*
