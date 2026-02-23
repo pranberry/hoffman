@@ -40,3 +40,8 @@ A privacy-first macOS app for RSS and Stocks.
 - `npm run typecheck`: Validate all TS files (Main & Renderer).
 - `npm run build`: Production bundle (runs tests first).
 - `npm run dist`: Package application into OS-specific installer (DMG/EXE/AppImage).
+
+
+## Code Practices
+- Always comment code and explain architectural decisions where relevant.
+- The project should have a COMMIT.md, which records changes made to code after every task.
