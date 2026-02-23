@@ -1,10 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-// Expose a strict, typed API to the renderer process.
-// No raw Node or Electron APIs are leaked — only these specific IPC calls.
+/**
+ * ── ARCHITECTURAL OVERVIEW: THE BRIDGE (PRELOAD) ──
+ * Electron's security model (Context Isolation) prevents the Renderer (UI) 
+ * from accessing powerful Node.js APIs directly.
+ * 
+ * This Preload script acts as a secure airlock. It:
+ * 1. Runs in a privileged environment with access to Node.js.
+ * 2. Exposes a selective, sanitized API to the UI via 'contextBridge'.
+ * 3. Prevents the UI from sending arbitrary IPC messages or accessing 'require()'.
+ */
 
 const api = {
-  // Folders
+  // Folders management IPC wrappers
   folders: {
     list: () => ipcRenderer.invoke('folders:list'),
     create: (name: string) => ipcRenderer.invoke('folders:create', name),
@@ -12,14 +20,14 @@ const api = {
     delete: (id: number) => ipcRenderer.invoke('folders:delete', id),
   },
 
-  // Settings
+  // Global settings access
   settings: {
     get: (key: string) => ipcRenderer.invoke('settings:get', key),
     set: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),
     list: () => ipcRenderer.invoke('settings:list'),
   },
 
-  // Feeds
+  // RSS Feed management and polling
   feeds: {
     list: () => ipcRenderer.invoke('feeds:list'),
     add: (url: string, folderId: number | null) => ipcRenderer.invoke('feeds:add', url, folderId),
@@ -30,7 +38,7 @@ const api = {
     refresh: (feedId?: number) => ipcRenderer.invoke('feeds:refresh', feedId),
   },
 
-  // Articles
+  // Article reading state
   articles: {
     list: (feedId?: number, folderId?: number) => ipcRenderer.invoke('articles:list', feedId, folderId),
     get: (id: number) => ipcRenderer.invoke('articles:get', id),
@@ -40,7 +48,7 @@ const api = {
     starred: () => ipcRenderer.invoke('articles:starred'),
   },
 
-  // Stocks
+  // Financial market data
   stocks: {
     watchlist: () => ipcRenderer.invoke('stocks:watchlist'),
     add: (symbol: string) => ipcRenderer.invoke('stocks:add', symbol),
@@ -51,18 +59,22 @@ const api = {
     reorder: (ids: number[]) => ipcRenderer.invoke('stocks:reorder', ids),
   },
 
-  // Backup & Restore
+  // System filesystem operations
   backup: {
     export: () => ipcRenderer.invoke('backup:export'),
     import: () => ipcRenderer.invoke('backup:import'),
   },
 
-  // Shell
+  // Secure external link opening (prevents navigating the app itself)
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   },
 };
 
+/**
+ * Exposes the 'api' object as 'window.api' in the Renderer process.
+ * This is the ONLY way the UI can talk to the backend.
+ */
 contextBridge.exposeInMainWorld('api', api);
 
 export type ElectronApi = typeof api;

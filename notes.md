@@ -9,3 +9,6 @@
   
 - install .dmg behavior is odd. deleting it from applications doesn't remove it
 - stocks panel/tab for greater detail
+- for stock, add a notes tab
+- security?
+- issues with images on some blogs

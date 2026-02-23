@@ -2,8 +2,17 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { app } from 'electron';
 
+/**
+ * ── ARCHITECTURAL OVERVIEW: DATA PERSISTENCE ──
+ * This app uses SQLite via 'better-sqlite3' for local-first data storage.
+ * - ZERO Telemetry: All data stays on the user's machine.
+ * - Performance: We use WAL (Write-Ahead Logging) for high-performance concurrent access.
+ * - Lifecycle: Database is initialized in the Main process and persists in the 'userData' folder.
+ */
+
 let db: Database.Database;
 
+/** Returns the active database instance. Ensures singleton access. */
 export function getDb(): Database.Database {
   if (!db) {
     throw new Error('Database not initialized. Call initDatabase() first.');
@@ -11,27 +20,34 @@ export function getDb(): Database.Database {
   return db;
 }
 
+/** Initializes the SQLite connection and runs migrations. */
 export function initDatabase(dbPath?: string): void {
+  // Determine database location (platform-specific userData folder)
   const finalPath = dbPath || path.join(app.getPath('userData'), 'hoffman-reader.db');
   db = new Database(finalPath);
 
-  // Enable WAL mode for better concurrent read/write performance
+  // WAL mode allows multiple readers and one writer to work simultaneously without locking.
   if (finalPath !== ':memory:') {
     db.pragma('journal_mode = WAL');
   }
+  
+  // Enforce data integrity
   db.pragma('foreign_keys = ON');
 
   createTables();
 }
 
+/** Defines the relational schema. */
 function createTables(): void {
   db.exec(`
+    /* Folders for grouping RSS feeds */
     CREATE TABLE IF NOT EXISTS folders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       position INTEGER NOT NULL DEFAULT 0
     );
 
+    /* RSS Feed metadata and sync state */
     CREATE TABLE IF NOT EXISTS feeds (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       url TEXT NOT NULL UNIQUE,
@@ -45,6 +61,7 @@ function createTables(): void {
       FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL
     );
 
+    /* Individual articles. Unique constraint on (feed_id, guid) prevents duplicates. */
     CREATE TABLE IF NOT EXISTS articles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       feed_id INTEGER NOT NULL,
@@ -62,6 +79,7 @@ function createTables(): void {
       UNIQUE(feed_id, guid)
     );
 
+    /* Stock watchlist symbols */
     CREATE TABLE IF NOT EXISTS watchlist (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       symbol TEXT NOT NULL UNIQUE,
@@ -70,15 +88,16 @@ function createTables(): void {
       added_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    /* Key-value store for app configuration */
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT
     );
 
-    -- Seed default settings
+    /* Seed default configuration on first boot */
     INSERT OR IGNORE INTO settings (key, value) VALUES ('refresh_interval', '300'); -- 5 minutes in seconds
 
-    -- Indexes for common queries
+    /* Performance Indexes for fast article filtering and sorting */
     CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
     CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
     CREATE INDEX IF NOT EXISTS idx_articles_is_read ON articles(is_read);
@@ -87,6 +106,7 @@ function createTables(): void {
   `);
 }
 
+/** Safe shutdown of the database connection. */
 export function closeDatabase(): void {
   if (db) {
     db.close();

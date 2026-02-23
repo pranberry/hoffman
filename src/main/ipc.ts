@@ -12,19 +12,26 @@ import {
 import { getSetting, setSetting, listSettings } from './settings';
 import { exportBackup, importBackup } from './backup';
 
+/**
+ * ── ARCHITECTURAL OVERVIEW: IPC HANDLERS ──
+ * This module acts as the router for the app. 
+ * Every 'ipcMain.handle' corresponds to an 'ipcRenderer.invoke' call in the UI.
+ * It translates front-end requests into database queries and business logic.
+ */
+
 export function registerIpcHandlers(): void {
-  // ── Folders ──
+  // ── FOLDERS: Create, List, and Organize groups of feeds ──
   ipcMain.handle('folders:list', () => listFolders());
   ipcMain.handle('folders:create', (_e, name: string) => createFolder(name));
   ipcMain.handle('folders:rename', (_e, id: number, name: string) => renameFolder(id, name));
   ipcMain.handle('folders:delete', (_e, id: number) => deleteFolder(id));
 
-  // ── Settings ──
+  // ── SETTINGS: Key-value configuration storage ──
   ipcMain.handle('settings:get', (_e, key: string) => getSetting(key));
   ipcMain.handle('settings:set', (_e, key: string, value: string) => setSetting(key, value));
   ipcMain.handle('settings:list', () => listSettings());
 
-  // ── Feeds ──
+  // ── FEEDS: Managing RSS feed subscriptions and updates ──
   ipcMain.handle('feeds:list', () => listFeeds());
   ipcMain.handle('feeds:add', (_e, url: string, folderId: number | null) => addFeed(url, folderId));
   ipcMain.handle('feeds:remove', (_e, id: number) => removeFeed(id));
@@ -32,11 +39,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('feeds:updateUrl', (_e, id: number, url: string) => updateFeedUrl(id, url));
   ipcMain.handle('feeds:move', (_e, id: number, folderId: number | null) => moveFeed(id, folderId));
   ipcMain.handle('feeds:refresh', (_e, feedId?: number) => {
+    // If a specific ID is provided, refresh only that feed. Otherwise, refresh all.
     if (feedId !== undefined) return refreshFeed(feedId);
     return refreshAllFeeds();
   });
 
-  // ── Articles ──
+  // ── ARTICLES: Reading and state management ──
   ipcMain.handle('articles:list', (_e, feedId?: number, folderId?: number) => listArticles(feedId, folderId));
   ipcMain.handle('articles:get', (_e, id: number) => getArticle(id));
   ipcMain.handle('articles:markRead', (_e, id: number, isRead: boolean) => markArticleRead(id, isRead));
@@ -44,7 +52,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('articles:toggleStar', (_e, id: number) => toggleStar(id));
   ipcMain.handle('articles:starred', () => listStarredArticles());
 
-  // ── Stocks ──
+  // ── STOCKS: Watchlist and market data polling ──
   ipcMain.handle('stocks:watchlist', () => getWatchlist());
   ipcMain.handle('stocks:add', (_e, symbol: string) => addToWatchlist(symbol));
   ipcMain.handle('stocks:validate', (_e, symbol: string) => validateStock(symbol));
@@ -53,16 +61,16 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('stocks:detail', (_e, symbol: string) => fetchStockDetail(symbol));
   ipcMain.handle('stocks:reorder', (_e, ids: number[]) => reorderWatchlist(ids));
 
-  // ── Backup ──
+  // ── BACKUP: Data portability via JSON export/import ──
   ipcMain.handle('backup:export', () => exportBackup());
   ipcMain.handle('backup:import', () => importBackup());
 
-  // ── Utilities ──
+  // ── UTILITIES: Open links safely in the default browser ──
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
-    // Only allow http/https URLs
+    // SECURITY: Strictly filter URLs to prevent local file execution attacks.
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return shell.openExternal(url);
     }
-    throw new Error('Only http/https URLs are allowed');
+    throw new Error('Only http/https URLs are allowed for external links.');
   });
 }

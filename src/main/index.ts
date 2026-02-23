@@ -3,7 +3,16 @@ import path from 'path';
 import { initDatabase, closeDatabase } from './database';
 import { registerIpcHandlers } from './ipc';
 
-// Enforce single instance
+/**
+ * ── ARCHITECTURAL OVERVIEW: MAIN ENTRY POINT ──
+ * This is the "Brain" of the application. It runs in Node.js and:
+ * 1. Manages the system-level lifecycle (boot, shutdown).
+ * 2. Creates the browser window for the UI.
+ * 3. Initializes the database and IPC communication.
+ * 4. Enforces strict security policies (CSP, Navigation locks).
+ */
+
+// SINGLE INSTANCE LOCK: Prevents multiple copies of the app from running at once.
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
@@ -19,18 +28,22 @@ function createWindow(): void {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hiddenInset', // macOS specific: makes the title bar look integrated
     trafficLightPosition: { x: 16, y: 16 },
     icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false, // Required for better-sqlite3 via preload
+      preload: path.join(__dirname, 'preload.js'), // Injects the secure bridge
+      contextIsolation: true, // SECURITY: Critical for protecting the main process
+      nodeIntegration: false, // SECURITY: Prevents UI from using Node.js directly
+      sandbox: false, // Required for 'better-sqlite3' to function in this specific setup
     },
   });
 
-  // Strict CSP in production only — Vite's HMR requires inline scripts + WS in dev
+  /**
+   * CONTENT SECURITY POLICY (CSP)
+   * This is a critical security layer that defines which resources the app can load.
+   * It prevents "Cross-Site Scripting" (XSS) attacks.
+   */
   if (!isDev) {
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({
@@ -44,9 +57,9 @@ function createWindow(): void {
     });
   }
 
-  // Load the app
+  // Load the appropriate content based on environment
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadURL('http://localhost:5173'); // Vite dev server
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', '..', 'renderer', 'index.html'));
@@ -57,17 +70,24 @@ function createWindow(): void {
   });
 }
 
+/**
+ * APP LIFECYCLE: Initialization
+ */
 app.on('ready', () => {
-  initDatabase();
-  registerIpcHandlers();
-  createWindow();
+  initDatabase();        // Boot the SQLite engine
+  registerIpcHandlers(); // Setup communication channels
+  createWindow();        // Show the UI
 });
 
+/**
+ * APP LIFECYCLE: Shutdown
+ */
 app.on('window-all-closed', () => {
-  closeDatabase();
+  closeDatabase(); // Ensure SQLite closes gracefully to prevent corruption
   app.quit();
 });
 
+// If the user tries to open a second instance, focus the existing window instead.
 app.on('second-instance', () => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
@@ -75,15 +95,20 @@ app.on('second-instance', () => {
   }
 });
 
-// Privacy: disable all navigation to external URLs inside the app window
+/**
+ * SECURITY GUARDRAILS
+ * We disable all in-app navigation to ensure external websites never load 
+ * inside our trusted environment.
+ */
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-navigate', (event, url) => {
-    // Only allow loading our own app URLs
+    // Only allow internal app navigation
     if (!url.startsWith('http://localhost:5173') && !url.startsWith('file://')) {
       event.preventDefault();
     }
   });
 
+  // Block any attempt to open a new window via window.open()
   contents.setWindowOpenHandler(() => {
     return { action: 'deny' };
   });

@@ -1,11 +1,18 @@
-// ── Shared types used by both main and renderer processes ──
+/**
+ * ── ARCHITECTURAL OVERVIEW: SHARED TYPES ──
+ * This file serves as the Single Source of Truth for data structures used by both 
+ * the Main process (Node/SQLite) and the Renderer process (React).
+ * It also defines the "Contract" (IpcChannels) for Inter-Process Communication (IPC).
+ */
 
+/** RSS Folder structure for organizing feeds */
 export interface Folder {
   id: number;
   name: string;
   position: number;
 }
 
+/** RSS Feed metadata */
 export interface Feed {
   id: number;
   url: string;
@@ -18,6 +25,7 @@ export interface Feed {
   createdAt: string;
 }
 
+/** A single article from an RSS feed */
 export interface Article {
   id: number;
   feedId: number;
@@ -33,6 +41,7 @@ export interface Article {
   fetchedAt: string;
 }
 
+/** Real-time stock price data (cached in memory/DB) */
 export interface StockQuote {
   symbol: string;
   name: string;
@@ -43,6 +52,7 @@ export interface StockQuote {
   lastUpdated: string;
 }
 
+/** Detailed financial data for a specific stock */
 export interface StockDetail {
   symbol: string;
   name: string;
@@ -58,7 +68,7 @@ export interface StockDetail {
   marketCap: number;
   volume: number;
   avgVolume: number;
-  // Financial data
+  // Financial metrics
   peRatio: number | null;
   eps: number | null;
   dividendYield: number | null;
@@ -67,6 +77,7 @@ export interface StockDetail {
   numberOfAnalystOpinions: number | null;
 }
 
+/** User's personal stock watchlist entry */
 export interface WatchlistItem {
   id: number;
   symbol: string;
@@ -75,21 +86,24 @@ export interface WatchlistItem {
   addedAt: string;
 }
 
-// ── IPC Channel definitions ──
-
+/**
+ * ── IPC CHANNEL DEFINITIONS ──
+ * This interface maps every valid string channel name to its expected function signature.
+ * It ensures type safety when using 'window.api' in the renderer.
+ */
 export interface IpcChannels {
-  // Folders
+  // Folders management
   'folders:list': () => Folder[];
   'folders:create': (name: string) => Folder;
   'folders:rename': (id: number, name: string) => Folder;
   'folders:delete': (id: number) => void;
 
-  // Settings
+  // Global app settings (stored in SQLite)
   'settings:get': (key: string) => string | null;
   'settings:set': (key: string, value: string) => void;
   'settings:list': () => Record<string, string>;
 
-  // Feeds
+  // RSS Feed management
   'feeds:list': () => Feed[];
   'feeds:add': (url: string, folderId: number | null) => Feed;
   'feeds:remove': (id: number) => void;
@@ -97,7 +111,7 @@ export interface IpcChannels {
   'feeds:refresh': (id?: number) => Article[];
   'feeds:move': (id: number, folderId: number | null) => void;
 
-  // Articles
+  // Article reading & state
   'articles:list': (feedId?: number, folderId?: number) => Article[];
   'articles:get': (id: number) => Article | null;
   'articles:markRead': (id: number, isRead: boolean) => void;
@@ -105,7 +119,7 @@ export interface IpcChannels {
   'articles:toggleStar': (id: number) => Article;
   'articles:starred': () => Article[];
 
-  // Stocks
+  // Stock Market functionality
   'stocks:watchlist': () => WatchlistItem[];
   'stocks:add': (symbol: string) => WatchlistItem;
   'stocks:validate': (symbol: string) => boolean;
@@ -114,7 +128,7 @@ export interface IpcChannels {
   'stocks:detail': (symbol: string) => StockDetail;
   'stocks:reorder': (ids: number[]) => void;
 
-  // Backup & Restore
+  // Data Portability
   'backup:export': () => Promise<{ success: boolean; filePath?: string }>;
   'backup:import': () => Promise<{ success: boolean; count?: { feeds: number; stocks: number; folders: number } }>;
 }
