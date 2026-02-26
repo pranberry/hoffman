@@ -40,6 +40,17 @@ export function deleteFolder(id: number): void {
   db.prepare('DELETE FROM folders WHERE id = ?').run(id);
 }
 
+export function reorderFolders(ids: number[]): void {
+  const db = getDb();
+  const stmt = db.prepare('UPDATE folders SET position = ? WHERE id = ?');
+  const updateAll = db.transaction((orderedIds: number[]) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      stmt.run(i, orderedIds[i]);
+    }
+  });
+  updateAll(ids);
+}
+
 // ── Feed operations ──
 
 function rowToFeed(row: Record<string, unknown>): Feed {

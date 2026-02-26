@@ -23,6 +23,8 @@ interface SidebarProps {
   onReorderFeeds: (ids: number[]) => void;
   onAddFolder: (name: string) => void;
   onDeleteFolder: (id: number) => void;
+  onRenameFolder: (id: number, name: string) => void;
+  onReorderFolders: (ids: number[]) => void;
   onRefresh: () => void;
   onShowSettings: () => void;
 }
@@ -142,6 +144,7 @@ function DraggableFeed({
       className="flex items-center group relative"
       draggable
       onDragStart={e => {
+        e.stopPropagation();
         e.dataTransfer.setData('application/x-feed-id', String(feed.id));
         e.dataTransfer.setData('application/x-feed-folder-id', feed.folderId === null ? 'null' : String(feed.folderId));
         e.dataTransfer.effectAllowed = 'move';
@@ -196,7 +199,7 @@ export function Sidebar({
   folders, feeds, selectedFeedId, selectedFolderId, showStarred,
   showAddFeedForm, showAddFolderForm, onShowAddFeed, onShowAddFolder,
   onSelectFeed, onSelectFolder, onSelectStarred, onSelectAll,
-  onAddFeed, onRemoveFeed, onRenameFeed, onUpdateFeedUrl, onMoveFeed, onReorderFeeds, onAddFolder, onDeleteFolder, onRefresh,
+  onAddFeed, onRemoveFeed, onRenameFeed, onUpdateFeedUrl, onMoveFeed, onReorderFeeds, onAddFolder, onDeleteFolder, onRenameFolder, onReorderFolders, onRefresh,
   onShowSettings,
 }: SidebarProps) {
   const [feedUrl, setFeedUrl] = useState('');
@@ -204,6 +207,15 @@ export function Sidebar({
   const [folderName, setFolderName] = useState('');
   const [dragOverFeedId, setDragOverFeedId] = useState<number | null>(null);
   const [dropAbove, setDropAbove] = useState(false);
+  const [dragOverFolderId, setDragOverFolderId] = useState<number | null>(null);
+  const [dragFolderAbove, setDragFolderAbove] = useState(false);
+  const [renamingFolderId, setRenamingFolderId] = useState<number | null>(null);
+  const [folderRenameValue, setFolderRenameValue] = useState('');
+  const folderRenameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (renamingFolderId !== null) folderRenameRef.current?.select();
+  }, [renamingFolderId]);
 
   const handleAddFeed = (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,6 +274,16 @@ export function Sidebar({
     onReorderFeeds(withoutDragged.map(f => f.id));
   }, [feeds, onMoveFeed, onReorderFeeds]);
 
+  const handleFolderDrop = useCallback((draggedId: number, targetId: number, above: boolean) => {
+    const sorted = [...folders].sort((a, b) => a.position - b.position);
+    const withoutDragged = sorted.filter(f => f.id !== draggedId);
+    const dragged = folders.find(f => f.id === draggedId);
+    if (!dragged) return;
+    const targetIdx = withoutDragged.findIndex(f => f.id === targetId);
+    withoutDragged.splice(above ? targetIdx : targetIdx + 1, 0, dragged);
+    onReorderFolders(withoutDragged.map(f => f.id));
+  }, [folders, onReorderFolders]);
+
   const unfolderedFeeds = feeds.filter(f => f.folderId === null);
   const isAllSelected = !selectedFeedId && !selectedFolderId && !showStarred;
 
@@ -295,27 +317,98 @@ export function Sidebar({
 
         <div className="border-t border-gray-200 dark:border-gray-800 my-2" />
 
-        {/* Folders — each is a drop target */}
+        {/* Folders — draggable for reordering, drop targets for feeds */}
         {folders.map(folder => {
           const folderFeeds = feeds.filter(f => f.folderId === folder.id);
           const isFolderSelected = selectedFolderId === folder.id;
-          const dropHandlers = makeFolderDropHandlers(folder.id);
+          const isFolderDragOver = dragOverFolderId === folder.id;
 
           return (
             <div
               key={folder.id}
-              {...dropHandlers}
-              className="rounded transition-colors"
+              className="rounded transition-colors relative"
+              draggable
+              onDragStart={e => {
+                e.dataTransfer.setData('application/x-folder-id', String(folder.id));
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragOver={e => {
+                const hasFeed = e.dataTransfer.types.includes('application/x-feed-id');
+                const hasFolder = e.dataTransfer.types.includes('application/x-folder-id');
+                if (hasFeed) {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  (e.currentTarget as HTMLElement).classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+                  setDragOverFolderId(null);
+                } else if (hasFolder) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setDragOverFolderId(folder.id);
+                  setDragFolderAbove(e.clientY < rect.top + rect.height / 2);
+                }
+              }}
+              onDragLeave={e => {
+                (e.currentTarget as HTMLElement).classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverFolderId(null);
+                }
+              }}
+              onDrop={e => {
+                (e.currentTarget as HTMLElement).classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+                setDragOverFolderId(null);
+                const feedId = Number(e.dataTransfer.getData('application/x-feed-id'));
+                const folderId = Number(e.dataTransfer.getData('application/x-folder-id'));
+                if (feedId) {
+                  e.preventDefault();
+                  onMoveFeed(feedId, folder.id);
+                } else if (folderId && folderId !== folder.id) {
+                  e.preventDefault();
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  handleFolderDrop(folderId, folder.id, e.clientY < rect.top + rect.height / 2);
+                }
+              }}
             >
+              {isFolderDragOver && dragFolderAbove && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
+              )}
+
               <div className="flex items-center group">
-                <button
-                  onClick={() => onSelectFolder(folder.id)}
-                  className={`flex-1 text-left px-3 py-1.5 rounded text-sm font-medium ${
-                    isFolderSelected ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {folder.name}
-                </button>
+                {renamingFolderId === folder.id ? (
+                  <input
+                    ref={folderRenameRef}
+                    value={folderRenameValue}
+                    onChange={e => setFolderRenameValue(e.target.value)}
+                    onBlur={() => {
+                      if (folderRenameValue.trim() && folderRenameValue.trim() !== folder.name) {
+                        onRenameFolder(folder.id, folderRenameValue.trim());
+                      }
+                      setRenamingFolderId(null);
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') e.currentTarget.blur();
+                      if (e.key === 'Escape') { setFolderRenameValue(folder.name); setRenamingFolderId(null); }
+                    }}
+                    onClick={e => e.stopPropagation()}
+                    className="flex-1 px-3 py-1.5 text-sm font-medium rounded border border-blue-400 bg-white dark:bg-gray-800 focus:outline-none"
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    onClick={() => onSelectFolder(folder.id)}
+                    onDoubleClick={e => {
+                      e.stopPropagation();
+                      setFolderRenameValue(folder.name);
+                      setRenamingFolderId(folder.id);
+                    }}
+                    className={`flex-1 text-left px-3 py-1.5 rounded text-sm font-medium ${
+                      isFolderSelected ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
+                    }`}
+                    title="Double-click to rename"
+                  >
+                    {folder.name}
+                  </button>
+                )}
                 <button
                   onClick={() => onDeleteFolder(folder.id)}
                   className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
@@ -324,6 +417,7 @@ export function Sidebar({
                   ×
                 </button>
               </div>
+
               {folderFeeds.map(feed => (
                 <DraggableFeed
                   key={feed.id}
@@ -340,6 +434,10 @@ export function Sidebar({
                   onDropOnFeed={(draggedId, draggedFolderId, above) => handleFeedDrop(draggedId, draggedFolderId, feed.id, above)}
                 />
               ))}
+
+              {isFolderDragOver && !dragFolderAbove && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
+              )}
             </div>
           );
         })}

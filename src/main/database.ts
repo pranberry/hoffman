@@ -80,13 +80,22 @@ function createTables(): void {
       UNIQUE(feed_id, guid)
     );
 
+    /* Stock groups for organizing watchlist entries */
+    CREATE TABLE IF NOT EXISTS stock_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+
     /* Stock watchlist symbols */
     CREATE TABLE IF NOT EXISTS watchlist (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       symbol TEXT NOT NULL UNIQUE,
       display_name TEXT NOT NULL DEFAULT '',
       position INTEGER NOT NULL DEFAULT 0,
-      added_at TEXT NOT NULL DEFAULT (datetime('now'))
+      group_id INTEGER,
+      added_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (group_id) REFERENCES stock_groups(id) ON DELETE SET NULL
     );
 
     /* Key-value store for app configuration */
@@ -109,9 +118,14 @@ function createTables(): void {
 
 /** Handles schema changes that need to survive existing databases. */
 function runMigrations(): void {
-  const cols = db.prepare('PRAGMA table_info(feeds)').all() as { name: string }[];
-  if (!cols.find(c => c.name === 'position')) {
+  const feedCols = db.prepare('PRAGMA table_info(feeds)').all() as { name: string }[];
+  if (!feedCols.find(c => c.name === 'position')) {
     db.exec('ALTER TABLE feeds ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+  }
+
+  const watchlistCols = db.prepare('PRAGMA table_info(watchlist)').all() as { name: string }[];
+  if (!watchlistCols.find(c => c.name === 'group_id')) {
+    db.exec('ALTER TABLE watchlist ADD COLUMN group_id INTEGER');
   }
 }
 

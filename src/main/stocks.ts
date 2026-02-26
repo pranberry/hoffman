@@ -1,5 +1,5 @@
 import { getDb } from './database';
-import type { WatchlistItem, StockQuote, StockDetail } from '../shared/types';
+import type { WatchlistItem, StockGroup, StockQuote, StockDetail } from '../shared/types';
 
 // yahoo-finance2 is ESM-only; use dynamic import and instantiate with `new`
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +20,16 @@ function rowToWatchlistItem(row: Record<string, unknown>): WatchlistItem {
     symbol: row.symbol as string,
     displayName: row.display_name as string,
     position: row.position as number,
+    groupId: row.group_id as number | null,
     addedAt: row.added_at as string,
+  };
+}
+
+function rowToStockGroup(row: Record<string, unknown>): StockGroup {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    position: row.position as number,
   };
 }
 
@@ -28,6 +37,51 @@ export function getWatchlist(): WatchlistItem[] {
   const db = getDb();
   const rows = db.prepare('SELECT * FROM watchlist ORDER BY position ASC, id ASC').all() as Record<string, unknown>[];
   return rows.map(rowToWatchlistItem);
+}
+
+export function getStockGroups(): StockGroup[] {
+  const db = getDb();
+  const rows = db.prepare('SELECT * FROM stock_groups ORDER BY position ASC, id ASC').all() as Record<string, unknown>[];
+  return rows.map(rowToStockGroup);
+}
+
+export function createStockGroup(name: string): StockGroup {
+  const db = getDb();
+  const maxPos = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as next FROM stock_groups').get() as { next: number };
+  const result = db.prepare('INSERT INTO stock_groups (name, position) VALUES (?, ?)').run(name, maxPos.next);
+  return rowToStockGroup(
+    db.prepare('SELECT * FROM stock_groups WHERE id = ?').get(Number(result.lastInsertRowid)) as Record<string, unknown>
+  );
+}
+
+export function renameStockGroup(id: number, name: string): StockGroup {
+  const db = getDb();
+  db.prepare('UPDATE stock_groups SET name = ? WHERE id = ?').run(name, id);
+  return rowToStockGroup(
+    db.prepare('SELECT * FROM stock_groups WHERE id = ?').get(id) as Record<string, unknown>
+  );
+}
+
+export function deleteStockGroup(id: number): void {
+  const db = getDb();
+  db.prepare('UPDATE watchlist SET group_id = NULL WHERE group_id = ?').run(id);
+  db.prepare('DELETE FROM stock_groups WHERE id = ?').run(id);
+}
+
+export function reorderStockGroups(ids: number[]): void {
+  const db = getDb();
+  const stmt = db.prepare('UPDATE stock_groups SET position = ? WHERE id = ?');
+  const updateAll = db.transaction((orderedIds: number[]) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      stmt.run(i, orderedIds[i]);
+    }
+  });
+  updateAll(ids);
+}
+
+export function setStockGroup(stockId: number, groupId: number | null): void {
+  const db = getDb();
+  db.prepare('UPDATE watchlist SET group_id = ? WHERE id = ?').run(groupId, stockId);
 }
 
 export async function addToWatchlist(symbol: string): Promise<WatchlistItem> {

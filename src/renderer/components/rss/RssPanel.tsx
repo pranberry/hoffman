@@ -164,6 +164,11 @@ export function RssPanel({
     await loadSidebar();
   }, [loadSidebar]);
 
+  const handleRenameFolder = useCallback(async (id: number, name: string) => {
+    await window.api.folders.rename(id, name);
+    await loadSidebar();
+  }, [loadSidebar]);
+
   const handleAddFolder = useCallback(async (name: string) => {
     await window.api.folders.create(name);
     await loadSidebar();
@@ -174,6 +179,11 @@ export function RssPanel({
     if (selectedFolderId === id) setSelectedFolderId(null);
     await loadSidebar();
   }, [selectedFolderId, loadSidebar]);
+
+  const handleReorderFolders = useCallback(async (ids: number[]) => {
+    await window.api.folders.reorder(ids);
+    await loadSidebar();
+  }, [loadSidebar]);
 
   const handleRefresh = useCallback(async () => {
     setLoading(true);
@@ -266,6 +276,8 @@ export function RssPanel({
             onReorderFeeds={handleReorderFeeds}
             onAddFolder={handleAddFolder}
             onDeleteFolder={handleDeleteFolder}
+            onRenameFolder={handleRenameFolder}
+            onReorderFolders={handleReorderFolders}
             onRefresh={handleRefresh}
             onShowSettings={() => setShowSettings(true)}
           />

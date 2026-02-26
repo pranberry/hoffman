@@ -78,12 +78,20 @@ export interface StockDetail {
   numberOfAnalystOpinions: number | null;
 }
 
+/** A named group for organizing watchlist stocks */
+export interface StockGroup {
+  id: number;
+  name: string;
+  position: number;
+}
+
 /** User's personal stock watchlist entry */
 export interface WatchlistItem {
   id: number;
   symbol: string;
   displayName: string;
   position: number;
+  groupId: number | null;
   addedAt: string;
 }
 
@@ -98,6 +106,7 @@ export interface IpcChannels {
   'folders:create': (name: string) => Folder;
   'folders:rename': (id: number, name: string) => Folder;
   'folders:delete': (id: number) => void;
+  'folders:reorder': (ids: number[]) => void;
 
   // Global app settings (stored in SQLite)
   'settings:get': (key: string) => string | null;
@@ -129,6 +138,12 @@ export interface IpcChannels {
   'stocks:quotes': () => StockQuote[];
   'stocks:detail': (symbol: string) => StockDetail;
   'stocks:reorder': (ids: number[]) => void;
+  'stocks:move': (stockId: number, groupId: number | null) => void;
+  'stocks:groups:list': () => StockGroup[];
+  'stocks:groups:create': (name: string) => StockGroup;
+  'stocks:groups:rename': (id: number, name: string) => StockGroup;
+  'stocks:groups:delete': (id: number) => void;
+  'stocks:groups:reorder': (ids: number[]) => void;
 
   // Data Portability
   'backup:export': () => Promise<{ success: boolean; filePath?: string }>;

@@ -1,6 +1,6 @@
 import { ipcMain, shell } from 'electron';
 import {
-  listFolders, createFolder, renameFolder, deleteFolder,
+  listFolders, createFolder, renameFolder, deleteFolder, reorderFolders,
   listFeeds, addFeed, removeFeed, renameFeed, updateFeedUrl, moveFeed, reorderFeeds,
   listArticles, getArticle, markArticleRead, markAllRead,
   toggleStar, listStarredArticles, refreshFeed, refreshAllFeeds,
@@ -8,6 +8,8 @@ import {
 import {
   getWatchlist, addToWatchlist, validateStock, removeFromWatchlist,
   reorderWatchlist, fetchQuotes, fetchStockDetail,
+  getStockGroups, createStockGroup, renameStockGroup, deleteStockGroup,
+  reorderStockGroups, setStockGroup,
 } from './stocks';
 import { getSetting, setSetting, listSettings } from './settings';
 import { exportBackup, importBackup } from './backup';
@@ -25,6 +27,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('folders:create', (_e, name: string) => createFolder(name));
   ipcMain.handle('folders:rename', (_e, id: number, name: string) => renameFolder(id, name));
   ipcMain.handle('folders:delete', (_e, id: number) => deleteFolder(id));
+  ipcMain.handle('folders:reorder', (_e, ids: number[]) => reorderFolders(ids));
 
   // ── SETTINGS: Key-value configuration storage ──
   ipcMain.handle('settings:get', (_e, key: string) => getSetting(key));
@@ -61,6 +64,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('stocks:quotes', () => fetchQuotes());
   ipcMain.handle('stocks:detail', (_e, symbol: string) => fetchStockDetail(symbol));
   ipcMain.handle('stocks:reorder', (_e, ids: number[]) => reorderWatchlist(ids));
+  ipcMain.handle('stocks:move', (_e, stockId: number, groupId: number | null) => setStockGroup(stockId, groupId));
+  ipcMain.handle('stocks:groups:list', () => getStockGroups());
+  ipcMain.handle('stocks:groups:create', (_e, name: string) => createStockGroup(name));
+  ipcMain.handle('stocks:groups:rename', (_e, id: number, name: string) => renameStockGroup(id, name));
+  ipcMain.handle('stocks:groups:delete', (_e, id: number) => deleteStockGroup(id));
+  ipcMain.handle('stocks:groups:reorder', (_e, ids: number[]) => reorderStockGroups(ids));
 
   // ── BACKUP: Data portability via JSON export/import ──
   ipcMain.handle('backup:export', () => exportBackup());

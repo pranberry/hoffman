@@ -18,6 +18,7 @@ const api = {
     create: (name: string) => ipcRenderer.invoke('folders:create', name),
     rename: (id: number, name: string) => ipcRenderer.invoke('folders:rename', id, name),
     delete: (id: number) => ipcRenderer.invoke('folders:delete', id),
+    reorder: (ids: number[]) => ipcRenderer.invoke('folders:reorder', ids),
   },
 
   // Global settings access
@@ -58,6 +59,14 @@ const api = {
     quotes: () => ipcRenderer.invoke('stocks:quotes'),
     detail: (symbol: string) => ipcRenderer.invoke('stocks:detail', symbol),
     reorder: (ids: number[]) => ipcRenderer.invoke('stocks:reorder', ids),
+    move: (stockId: number, groupId: number | null) => ipcRenderer.invoke('stocks:move', stockId, groupId),
+    groups: {
+      list: () => ipcRenderer.invoke('stocks:groups:list'),
+      create: (name: string) => ipcRenderer.invoke('stocks:groups:create', name),
+      rename: (id: number, name: string) => ipcRenderer.invoke('stocks:groups:rename', id, name),
+      delete: (id: number) => ipcRenderer.invoke('stocks:groups:delete', id),
+      reorder: (ids: number[]) => ipcRenderer.invoke('stocks:groups:reorder', ids),
+    },
   },
 
   // System filesystem operations
