@@ -716,9 +716,25 @@ export function StockPanel({ width, showAdd, onShowAdd }: { width: number; showA
   );
 }
 
+function getYahooUrl(symbol: string): string {
+  return `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`;
+}
+
+function getFinvizUrl(symbol: string): string | null {
+  // Only US stocks: exclude futures (=F), currencies (=X), indices (^),
+  // crypto/pairs (-), and foreign stocks (.XX exchange suffix e.g. ASML.AS)
+  if (symbol.includes('=') || symbol.startsWith('^') || symbol.includes('-') || /\.[A-Z]{2,}/.test(symbol)) {
+    return null;
+  }
+  return `https://finviz.com/quote.ashx?t=${symbol}`;
+}
+
 function StockDetailContent({ detail, loading, onExternal }: { detail: StockDetail | null; loading: boolean; onExternal: (url: string) => void }) {
   if (loading) return <div className="flex justify-center py-8"><Spinner size="md" /></div>;
   if (!detail) return <p className="text-gray-400 text-center py-4">Could not load details</p>;
+
+  const yahooUrl = getYahooUrl(detail.symbol);
+  const finvizUrl = getFinvizUrl(detail.symbol);
 
   return (
     <div className="space-y-0.5">
@@ -740,13 +756,21 @@ function StockDetailContent({ detail, loading, onExternal }: { detail: StockDeta
           {detail.numberOfAnalystOpinions != null && <DetailRow label="# Analysts" value={String(detail.numberOfAnalystOpinions)} />}
         </>
       )}
-      <div className="mt-4 pt-2 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+      <div className="mt-4 pt-2 border-t border-gray-200 dark:border-gray-800 flex gap-1.5 justify-end">
         <button
-          onClick={e => { e.stopPropagation(); onExternal(`https://finviz.com/quote.ashx?t=${detail.symbol}`); }}
-          className="text-[10px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+          onClick={e => { e.stopPropagation(); onExternal(yahooUrl); }}
+          className="text-[10px] bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 px-2 py-1 rounded hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
         >
-          View on FinViz →
+          Yahoo →
         </button>
+        {finvizUrl && (
+          <button
+            onClick={e => { e.stopPropagation(); onExternal(finvizUrl); }}
+            className="text-[10px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+          >
+            FinViz →
+          </button>
+        )}
       </div>
     </div>
   );
