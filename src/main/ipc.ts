@@ -1,7 +1,7 @@
 import { ipcMain, shell } from 'electron';
 import {
   listFolders, createFolder, renameFolder, deleteFolder,
-  listFeeds, addFeed, removeFeed, renameFeed, updateFeedUrl, moveFeed,
+  listFeeds, addFeed, removeFeed, renameFeed, updateFeedUrl, moveFeed, reorderFeeds,
   listArticles, getArticle, markArticleRead, markAllRead,
   toggleStar, listStarredArticles, refreshFeed, refreshAllFeeds,
 } from './feeds';
@@ -38,6 +38,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('feeds:rename', (_e, id: number, title: string) => renameFeed(id, title));
   ipcMain.handle('feeds:updateUrl', (_e, id: number, url: string) => updateFeedUrl(id, url));
   ipcMain.handle('feeds:move', (_e, id: number, folderId: number | null) => moveFeed(id, folderId));
+  ipcMain.handle('feeds:reorder', (_e, ids: number[]) => reorderFeeds(ids));
   ipcMain.handle('feeds:refresh', (_e, feedId?: number) => {
     // If a specific ID is provided, refresh only that feed. Otherwise, refresh all.
     if (feedId !== undefined) return refreshFeed(feedId);

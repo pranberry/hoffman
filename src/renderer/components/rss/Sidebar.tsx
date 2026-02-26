@@ -20,6 +20,7 @@ interface SidebarProps {
   onRenameFeed: (id: number, title: string) => void;
   onUpdateFeedUrl: (id: number, url: string) => void;
   onMoveFeed: (id: number, folderId: number | null) => void;
+  onReorderFeeds: (ids: number[]) => void;
   onAddFolder: (name: string) => void;
   onDeleteFolder: (id: number) => void;
   onRefresh: () => void;
@@ -115,28 +116,60 @@ function DraggableFeed({
   feed,
   isSelected,
   indented,
+  dropIndicator,
   onSelect,
   onRemove,
   onRename,
   onUpdateUrl,
+  onDragOverFeed,
+  onDragLeaveFeed,
+  onDropOnFeed,
 }: {
   feed: Feed;
   isSelected: boolean;
   indented: boolean;
+  dropIndicator: 'above' | 'below' | null;
   onSelect: () => void;
   onRemove: () => void;
   onRename: (title: string) => void;
   onUpdateUrl: (url: string) => void;
+  onDragOverFeed: (above: boolean) => void;
+  onDragLeaveFeed: () => void;
+  onDropOnFeed: (draggedId: number, draggedFolderId: number | null, above: boolean) => void;
 }) {
   return (
     <div
-      className="flex items-center group"
+      className="flex items-center group relative"
       draggable
       onDragStart={e => {
         e.dataTransfer.setData('application/x-feed-id', String(feed.id));
+        e.dataTransfer.setData('application/x-feed-folder-id', feed.folderId === null ? 'null' : String(feed.folderId));
         e.dataTransfer.effectAllowed = 'move';
       }}
+      onDragOver={e => {
+        if (e.dataTransfer.types.includes('application/x-feed-id')) {
+          e.preventDefault();
+          e.stopPropagation();
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          onDragOverFeed(e.clientY < rect.top + rect.height / 2);
+        }
+      }}
+      onDragLeave={onDragLeaveFeed}
+      onDrop={e => {
+        const draggedId = Number(e.dataTransfer.getData('application/x-feed-id'));
+        const folderStr = e.dataTransfer.getData('application/x-feed-folder-id');
+        const draggedFolderId = folderStr === 'null' ? null : Number(folderStr);
+        if (!draggedId || draggedId === feed.id) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        onDropOnFeed(draggedId, draggedFolderId, e.clientY < rect.top + rect.height / 2);
+        onDragLeaveFeed();
+      }}
     >
+      {dropIndicator === 'above' && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
+      )}
       <EditableFeedName
         feed={feed}
         isSelected={isSelected}
@@ -152,6 +185,9 @@ function DraggableFeed({
       >
         ×
       </button>
+      {dropIndicator === 'below' && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
+      )}
     </div>
   );
 }
@@ -160,12 +196,14 @@ export function Sidebar({
   folders, feeds, selectedFeedId, selectedFolderId, showStarred,
   showAddFeedForm, showAddFolderForm, onShowAddFeed, onShowAddFolder,
   onSelectFeed, onSelectFolder, onSelectStarred, onSelectAll,
-  onAddFeed, onRemoveFeed, onRenameFeed, onUpdateFeedUrl, onMoveFeed, onAddFolder, onDeleteFolder, onRefresh,
+  onAddFeed, onRemoveFeed, onRenameFeed, onUpdateFeedUrl, onMoveFeed, onReorderFeeds, onAddFolder, onDeleteFolder, onRefresh,
   onShowSettings,
 }: SidebarProps) {
   const [feedUrl, setFeedUrl] = useState('');
   const [feedFolderId, setFeedFolderId] = useState<number | null>(null);
   const [folderName, setFolderName] = useState('');
+  const [dragOverFeedId, setDragOverFeedId] = useState<number | null>(null);
+  const [dropAbove, setDropAbove] = useState(false);
 
   const handleAddFeed = (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,6 +242,25 @@ export function Sidebar({
       if (feedId) onMoveFeed(feedId, folderId);
     },
   }), [onMoveFeed]);
+
+  const handleFeedDrop = useCallback((draggedId: number, draggedFolderId: number | null, targetId: number, above: boolean) => {
+    const draggedFeed = feeds.find(f => f.id === draggedId);
+    const targetFeed = feeds.find(f => f.id === targetId);
+    if (!draggedFeed || !targetFeed) return;
+
+    if (draggedFolderId !== targetFeed.folderId) {
+      // Cross-folder: just move to the target's folder
+      onMoveFeed(draggedId, targetFeed.folderId);
+      return;
+    }
+
+    // Same folder: reorder within the group
+    const groupFeeds = feeds.filter(f => f.folderId === draggedFeed.folderId);
+    const withoutDragged = groupFeeds.filter(f => f.id !== draggedId);
+    const targetIdx = withoutDragged.findIndex(f => f.id === targetId);
+    withoutDragged.splice(above ? targetIdx : targetIdx + 1, 0, draggedFeed);
+    onReorderFeeds(withoutDragged.map(f => f.id));
+  }, [feeds, onMoveFeed, onReorderFeeds]);
 
   const unfolderedFeeds = feeds.filter(f => f.folderId === null);
   const isAllSelected = !selectedFeedId && !selectedFolderId && !showStarred;
@@ -273,10 +330,14 @@ export function Sidebar({
                   feed={feed}
                   isSelected={selectedFeedId === feed.id}
                   indented
+                  dropIndicator={dragOverFeedId === feed.id ? (dropAbove ? 'above' : 'below') : null}
                   onSelect={() => onSelectFeed(feed.id)}
                   onRemove={() => onRemoveFeed(feed.id)}
                   onRename={(title) => onRenameFeed(feed.id, title)}
                   onUpdateUrl={(url) => onUpdateFeedUrl(feed.id, url)}
+                  onDragOverFeed={(above) => { setDragOverFeedId(feed.id); setDropAbove(above); }}
+                  onDragLeaveFeed={() => setDragOverFeedId(null)}
+                  onDropOnFeed={(draggedId, draggedFolderId, above) => handleFeedDrop(draggedId, draggedFolderId, feed.id, above)}
                 />
               ))}
             </div>
@@ -297,10 +358,14 @@ export function Sidebar({
               feed={feed}
               isSelected={selectedFeedId === feed.id}
               indented={false}
+              dropIndicator={dragOverFeedId === feed.id ? (dropAbove ? 'above' : 'below') : null}
               onSelect={() => onSelectFeed(feed.id)}
               onRemove={() => onRemoveFeed(feed.id)}
               onRename={(title) => onRenameFeed(feed.id, title)}
               onUpdateUrl={(url) => onUpdateFeedUrl(feed.id, url)}
+              onDragOverFeed={(above) => { setDragOverFeedId(feed.id); setDropAbove(above); }}
+              onDragLeaveFeed={() => setDragOverFeedId(null)}
+              onDropOnFeed={(draggedId, draggedFolderId, above) => handleFeedDrop(draggedId, draggedFolderId, feed.id, above)}
             />
           ))}
         </div>

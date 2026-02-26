@@ -50,6 +50,7 @@ function rowToFeed(row: Record<string, unknown>): Feed {
     description: row.description as string,
     siteUrl: row.site_url as string,
     folderId: row.folder_id as number | null,
+    position: (row.position as number) ?? 0,
     lastFetchedAt: row.last_fetched_at as string | null,
     errorMessage: row.error_message as string | null,
     createdAt: row.created_at as string,
@@ -58,7 +59,7 @@ function rowToFeed(row: Record<string, unknown>): Feed {
 
 export function listFeeds(): Feed[] {
   const db = getDb();
-  const rows = db.prepare('SELECT * FROM feeds ORDER BY title ASC').all() as Record<string, unknown>[];
+  const rows = db.prepare('SELECT * FROM feeds ORDER BY position ASC, id ASC').all() as Record<string, unknown>[];
   return rows.map(rowToFeed);
 }
 
@@ -82,9 +83,10 @@ export async function addFeed(url: string, folderId: number | null): Promise<Fee
   const description = feedData.description || '';
   const siteUrl = feedData.link || '';
 
+  const maxPos = db.prepare('SELECT COALESCE(MAX(position), -1) + 1 as next FROM feeds').get() as { next: number };
   const result = db.prepare(
-    'INSERT INTO feeds (url, title, description, site_url, folder_id) VALUES (?, ?, ?, ?, ?)'
-  ).run(url, title, description, siteUrl, folderId);
+    'INSERT INTO feeds (url, title, description, site_url, folder_id, position) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(url, title, description, siteUrl, folderId, maxPos.next);
 
   const feedId = Number(result.lastInsertRowid);
   const feed = rowToFeed(
@@ -120,6 +122,15 @@ export function updateFeedUrl(id: number, url: string): Feed {
 export function moveFeed(id: number, folderId: number | null): void {
   const db = getDb();
   db.prepare('UPDATE feeds SET folder_id = ? WHERE id = ?').run(folderId, id);
+}
+
+export function reorderFeeds(ids: number[]): void {
+  const db = getDb();
+  const update = db.prepare('UPDATE feeds SET position = ? WHERE id = ?');
+  const reorder = db.transaction((orderedIds: number[]) => {
+    orderedIds.forEach((id, i) => update.run(i, id));
+  });
+  reorder(ids);
 }
 
 // ── Article operations ──

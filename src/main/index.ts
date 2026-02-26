@@ -35,7 +35,7 @@ function createWindow(): void {
       preload: path.join(__dirname, 'preload.js'), // Injects the secure bridge
       contextIsolation: true, // SECURITY: Critical for protecting the main process
       nodeIntegration: false, // SECURITY: Prevents UI from using Node.js directly
-      sandbox: false, // Required for 'better-sqlite3' to function in this specific setup
+      sandbox: true, // SECURITY: Restricts renderer to a minimal environment
     },
   });
 
@@ -43,19 +43,37 @@ function createWindow(): void {
    * CONTENT SECURITY POLICY (CSP)
    * This is a critical security layer that defines which resources the app can load.
    * It prevents "Cross-Site Scripting" (XSS) attacks.
+   *
+   * HOW CSP WORKS:
+   * Think of CSP as a bouncer with a guest list. Every resource (script, image,
+   * stylesheet, font, network request) must match a rule or it gets blocked.
+   *
+   * Each directive controls one resource type:
+   *   default-src  → Fallback for anything not covered by a specific directive
+   *   script-src   → Which scripts can execute (most critical for XSS defense)
+   *   style-src    → Which stylesheets can load ('unsafe-inline' = allows style="...")
+   *   img-src      → Which images can load ('data:' = allows base64-encoded images)
+   *   font-src     → Which fonts can load
+   *   connect-src  → Which URLs fetch/XHR/WebSocket can talk to
+   *
+   * 'self' means "only from our own app's origin" — no third-party CDNs, no external servers.
+   *
+   * WHY TWO POLICIES:
+   * - Production: Strict lockdown. Only our own bundled code runs.
+   * - Development: Vite's hot-reload needs WebSocket (ws:) and inline scripts,
+   *   so we allow those, but we STILL block injected scripts from RSS content.
    */
-  if (!isDev) {
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          'Content-Security-Policy': [
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self';"
-          ],
-        },
-      });
+  const prodCsp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self';";
+  const devCsp = "default-src 'self' http://localhost:5173; script-src 'self' 'unsafe-inline' http://localhost:5173; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173;";
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [isDev ? devCsp : prodCsp],
+      },
     });
-  }
+  });
 
   // Load the appropriate content based on environment
   if (isDev) {

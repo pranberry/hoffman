@@ -20,6 +20,7 @@ export interface Feed {
   description: string;
   siteUrl: string;
   folderId: number | null;
+  position: number;
   lastFetchedAt: string | null;
   errorMessage: string | null;
   createdAt: string;
@@ -110,6 +111,7 @@ export interface IpcChannels {
   'feeds:rename': (id: number, title: string) => Feed;
   'feeds:refresh': (id?: number) => Article[];
   'feeds:move': (id: number, folderId: number | null) => void;
+  'feeds:reorder': (ids: number[]) => void;
 
   // Article reading & state
   'articles:list': (feedId?: number, folderId?: number) => Article[];

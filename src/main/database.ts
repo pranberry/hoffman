@@ -35,6 +35,7 @@ export function initDatabase(dbPath?: string): void {
   db.pragma('foreign_keys = ON');
 
   createTables();
+  runMigrations();
 }
 
 /** Defines the relational schema. */
@@ -104,6 +105,14 @@ function createTables(): void {
     CREATE INDEX IF NOT EXISTS idx_articles_is_starred ON articles(is_starred);
     CREATE INDEX IF NOT EXISTS idx_feeds_folder_id ON feeds(folder_id);
   `);
+}
+
+/** Handles schema changes that need to survive existing databases. */
+function runMigrations(): void {
+  const cols = db.prepare('PRAGMA table_info(feeds)').all() as { name: string }[];
+  if (!cols.find(c => c.name === 'position')) {
+    db.exec('ALTER TABLE feeds ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+  }
 }
 
 /** Safe shutdown of the database connection. */

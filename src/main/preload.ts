@@ -35,6 +35,7 @@ const api = {
     rename: (id: number, title: string) => ipcRenderer.invoke('feeds:rename', id, title),
     updateUrl: (id: number, url: string) => ipcRenderer.invoke('feeds:updateUrl', id, url),
     move: (id: number, folderId: number | null) => ipcRenderer.invoke('feeds:move', id, folderId),
+    reorder: (ids: number[]) => ipcRenderer.invoke('feeds:reorder', ids),
     refresh: (feedId?: number) => ipcRenderer.invoke('feeds:refresh', feedId),
   },
 

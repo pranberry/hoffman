@@ -159,6 +159,11 @@ export function RssPanel({
     await loadSidebar();
   }, [loadSidebar]);
 
+  const handleReorderFeeds = useCallback(async (ids: number[]) => {
+    await window.api.feeds.reorder(ids);
+    await loadSidebar();
+  }, [loadSidebar]);
+
   const handleAddFolder = useCallback(async (name: string) => {
     await window.api.folders.create(name);
     await loadSidebar();
@@ -258,6 +263,7 @@ export function RssPanel({
             onRenameFeed={handleRenameFeed}
             onUpdateFeedUrl={handleUpdateFeedUrl}
             onMoveFeed={handleMoveFeed}
+            onReorderFeeds={handleReorderFeeds}
             onAddFolder={handleAddFolder}
             onDeleteFolder={handleDeleteFolder}
             onRefresh={handleRefresh}

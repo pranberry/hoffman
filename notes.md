@@ -12,3 +12,5 @@
 - for stock, add a notes tab
 - security?
 - issues with images on some blogs
+- handle error for adding existing stock
+- RSS feed extractor
