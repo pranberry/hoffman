@@ -18,10 +18,11 @@ if (!gotLock) {
   app.quit();
 }
 
+const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
+
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
-  const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
   
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -120,10 +121,12 @@ app.on('second-instance', () => {
  */
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-navigate', (event, url) => {
-    // Only allow internal app navigation
-    if (!url.startsWith('http://localhost:5173') && !url.startsWith('file://')) {
-      event.preventDefault();
-    }
+    // Only allow navigation within our own app origin. The broad 'file://'
+    // check was replaced to prevent navigating to arbitrary local files.
+    const allowed = isDev
+      ? url.startsWith('http://localhost:5173')
+      : url.startsWith(`file://${app.getAppPath()}`);
+    if (!allowed) event.preventDefault();
   });
 
   // Block any attempt to open a new window via window.open()

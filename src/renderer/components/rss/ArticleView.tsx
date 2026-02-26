@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import type { Article } from '../../../shared/types';
 
 interface ArticleViewProps {
@@ -112,7 +113,7 @@ export function ArticleView({ article, onToggleStar, onOpenInBrowser, onBack }: 
         {displayContent ? (
           <div
             className="article-content text-sm"
-            dangerouslySetInnerHTML={{ __html: displayContent }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayContent) }}
           />
         ) : (
           <p className="text-gray-400 text-sm italic">

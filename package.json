@@ -21,13 +21,15 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
-    "rss-parser": "^3.13.0",
+    "dompurify": "^3.3.1",
+    "fast-xml-parser": "^5.4.1",
     "yahoo-finance2": "^3.13.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
     "@tailwindcss/vite": "^4.0.0",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/dompurify": "^3.0.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
