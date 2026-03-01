@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Folder, Feed } from '../../../shared/types';
+import { SwipeToDelete } from '../common/SwipeToDelete';
 
 interface SidebarProps {
   folders: Folder[];
@@ -141,7 +142,7 @@ function DraggableFeed({
 }) {
   return (
     <div
-      className="flex items-center group relative"
+      className="relative"
       draggable
       onDragStart={e => {
         e.stopPropagation();
@@ -173,21 +174,25 @@ function DraggableFeed({
       {dropIndicator === 'above' && (
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
       )}
-      <EditableFeedName
-        feed={feed}
-        isSelected={isSelected}
-        indented={indented}
-        onSelect={onSelect}
-        onRename={onRename}
-        onUpdateUrl={onUpdateUrl}
-      />
-      <button
-        onClick={onRemove}
-        className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
-        title="Remove feed"
-      >
-        ×
-      </button>
+      <SwipeToDelete onDelete={onRemove}>
+        <div className="flex items-center group">
+          <EditableFeedName
+            feed={feed}
+            isSelected={isSelected}
+            indented={indented}
+            onSelect={onSelect}
+            onRename={onRename}
+            onUpdateUrl={onUpdateUrl}
+          />
+          <button
+            onClick={onRemove}
+            className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
+            title="Remove feed"
+          >
+            ×
+          </button>
+        </div>
+      </SwipeToDelete>
       {dropIndicator === 'below' && (
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
       )}
@@ -373,50 +378,52 @@ export function Sidebar({
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
               )}
 
-              <div className="flex items-center group">
-                {renamingFolderId === folder.id ? (
-                  <input
-                    ref={folderRenameRef}
-                    value={folderRenameValue}
-                    onChange={e => setFolderRenameValue(e.target.value)}
-                    onBlur={() => {
-                      if (folderRenameValue.trim() && folderRenameValue.trim() !== folder.name) {
-                        onRenameFolder(folder.id, folderRenameValue.trim());
-                      }
-                      setRenamingFolderId(null);
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') e.currentTarget.blur();
-                      if (e.key === 'Escape') { setFolderRenameValue(folder.name); setRenamingFolderId(null); }
-                    }}
-                    onClick={e => e.stopPropagation()}
-                    className="flex-1 px-3 py-1.5 text-sm font-medium rounded border border-blue-400 bg-white dark:bg-gray-800 focus:outline-none"
-                    autoFocus
-                  />
-                ) : (
+              <SwipeToDelete onDelete={() => onDeleteFolder(folder.id)}>
+                <div className="flex items-center group">
+                  {renamingFolderId === folder.id ? (
+                    <input
+                      ref={folderRenameRef}
+                      value={folderRenameValue}
+                      onChange={e => setFolderRenameValue(e.target.value)}
+                      onBlur={() => {
+                        if (folderRenameValue.trim() && folderRenameValue.trim() !== folder.name) {
+                          onRenameFolder(folder.id, folderRenameValue.trim());
+                        }
+                        setRenamingFolderId(null);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') e.currentTarget.blur();
+                        if (e.key === 'Escape') { setFolderRenameValue(folder.name); setRenamingFolderId(null); }
+                      }}
+                      onClick={e => e.stopPropagation()}
+                      className="flex-1 px-3 py-1.5 text-sm font-medium rounded border border-blue-400 bg-white dark:bg-gray-800 focus:outline-none"
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      onClick={() => onSelectFolder(folder.id)}
+                      onDoubleClick={e => {
+                        e.stopPropagation();
+                        setFolderRenameValue(folder.name);
+                        setRenamingFolderId(folder.id);
+                      }}
+                      className={`flex-1 text-left px-3 py-1.5 rounded text-sm font-medium ${
+                        isFolderSelected ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
+                      }`}
+                      title="Double-click to rename"
+                    >
+                      {folder.name}
+                    </button>
+                  )}
                   <button
-                    onClick={() => onSelectFolder(folder.id)}
-                    onDoubleClick={e => {
-                      e.stopPropagation();
-                      setFolderRenameValue(folder.name);
-                      setRenamingFolderId(folder.id);
-                    }}
-                    className={`flex-1 text-left px-3 py-1.5 rounded text-sm font-medium ${
-                      isFolderSelected ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-200 dark:hover:bg-gray-800'
-                    }`}
-                    title="Double-click to rename"
+                    onClick={() => onDeleteFolder(folder.id)}
+                    className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
+                    title="Delete folder"
                   >
-                    {folder.name}
+                    ×
                   </button>
-                )}
-                <button
-                  onClick={() => onDeleteFolder(folder.id)}
-                  className="opacity-0 group-hover:opacity-100 px-1 text-gray-400 hover:text-red-500 text-xs"
-                  title="Delete folder"
-                >
-                  ×
-                </button>
-              </div>
+                </div>
+              </SwipeToDelete>
 
               {folderFeeds.map(feed => (
                 <DraggableFeed

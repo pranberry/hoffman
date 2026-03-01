@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { WatchlistItem, StockGroup, StockQuote, StockDetail } from '../../../shared/types';
 import { Spinner } from '../common/Spinner';
+import { SwipeToDelete } from '../common/SwipeToDelete';
 
 // ── Drag data MIME types ──
 const DRAG_STOCK = 'application/x-stock-id';
@@ -113,6 +114,7 @@ function StockRow({
         <div className="absolute inset-0 ring-2 ring-blue-500 ring-inset rounded pointer-events-none z-10" />
       )}
 
+      <SwipeToDelete onDelete={onRemove}>
       <button
         onClick={onSelect}
         className={`w-full flex rounded group transition-colors text-left stock-trigger mb-0.5 ${
@@ -177,6 +179,7 @@ function StockRow({
           </>
         )}
       </button>
+      </SwipeToDelete>
 
       {!isPanelCollapsed && isSelected && (
         <div className="mx-1 mb-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-[11px]">
@@ -233,7 +236,7 @@ function GroupHeader({
 
   return (
     <div
-      className="relative flex items-center group/ghdr py-1 cursor-pointer select-none"
+      className="relative py-1 cursor-pointer select-none"
       draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -247,44 +250,48 @@ function GroupHeader({
         <div className="absolute inset-0 bg-blue-50 dark:bg-blue-900/20 rounded pointer-events-none z-0" />
       )}
 
-      <button
-        onClick={onToggleCollapse}
-        className="text-gray-400 mr-1 flex-shrink-0 text-[9px] w-3 text-center relative z-10"
-        title={isCollapsed ? 'Expand' : 'Collapse'}
-      >
-        {isCollapsed ? '▶' : '▼'}
-      </button>
+      <SwipeToDelete onDelete={onDelete}>
+        <div className="flex items-center group/ghdr">
+          <button
+            onClick={onToggleCollapse}
+            className="text-gray-400 mr-1 flex-shrink-0 text-[9px] w-3 text-center relative z-10"
+            title={isCollapsed ? 'Expand' : 'Collapse'}
+          >
+            {isCollapsed ? '▶' : '▼'}
+          </button>
 
-      {isRenaming ? (
-        <input
-          ref={inputRef}
-          value={renameValue}
-          onChange={e => onRenameChange(e.target.value)}
-          onBlur={onRenameCommit}
-          onKeyDown={e => {
-            if (e.key === 'Enter') onRenameCommit();
-            if (e.key === 'Escape') onRenameCancel();
-          }}
-          className="flex-1 text-[10px] font-bold uppercase tracking-wider bg-transparent border-b border-blue-500 focus:outline-none text-gray-500 dark:text-gray-400 relative z-10"
-          onClick={e => e.stopPropagation()}
-        />
-      ) : (
-        <span
-          onDoubleClick={e => { e.stopPropagation(); onStartRename(); }}
-          className="flex-1 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider truncate relative z-10"
-          title="Double-click to rename"
-        >
-          {group.name}
-        </span>
-      )}
+          {isRenaming ? (
+            <input
+              ref={inputRef}
+              value={renameValue}
+              onChange={e => onRenameChange(e.target.value)}
+              onBlur={onRenameCommit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') onRenameCommit();
+                if (e.key === 'Escape') onRenameCancel();
+              }}
+              className="flex-1 text-[10px] font-bold uppercase tracking-wider bg-transparent border-b border-blue-500 focus:outline-none text-gray-500 dark:text-gray-400 relative z-10"
+              onClick={e => e.stopPropagation()}
+            />
+          ) : (
+            <span
+              onDoubleClick={e => { e.stopPropagation(); onStartRename(); }}
+              className="flex-1 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider truncate relative z-10"
+              title="Double-click to rename"
+            >
+              {group.name}
+            </span>
+          )}
 
-      <button
-        onClick={e => { e.stopPropagation(); onDelete(); }}
-        className="opacity-0 group-hover/ghdr:opacity-100 text-gray-400 hover:text-red-500 text-xs ml-1 flex-shrink-0 relative z-10"
-        title="Delete group (stocks become ungrouped)"
-      >
-        ×
-      </button>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(); }}
+            className="opacity-0 group-hover/ghdr:opacity-100 text-gray-400 hover:text-red-500 text-xs ml-1 flex-shrink-0 relative z-10"
+            title="Delete group (stocks become ungrouped)"
+          >
+            ×
+          </button>
+        </div>
+      </SwipeToDelete>
 
       {dropIndicator === 'below' && (
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded pointer-events-none z-10" />
