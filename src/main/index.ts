@@ -2,6 +2,7 @@ import { app, BrowserWindow, session } from 'electron';
 import path from 'path';
 import { initDatabase, closeDatabase } from './database';
 import { registerIpcHandlers } from './ipc';
+import { startHeatmapRefresh } from './heatmap';
 
 /**
  * ── ARCHITECTURAL OVERVIEW: MAIN ENTRY POINT ──
@@ -95,6 +96,7 @@ function createWindow(): void {
 app.on('ready', () => {
   initDatabase();        // Boot the SQLite engine
   registerIpcHandlers(); // Setup communication channels
+  startHeatmapRefresh(); // Begin fetching TSX heatmap data
   createWindow();        // Show the UI
 });
 

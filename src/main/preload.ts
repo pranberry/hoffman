@@ -75,6 +75,11 @@ const api = {
     import: () => ipcRenderer.invoke('backup:import'),
   },
 
+  // TSX Heatmap data
+  heatmap: {
+    getData: () => ipcRenderer.invoke('heatmap:getData'),
+  },
+
   // Secure external link opening (prevents navigating the app itself)
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),

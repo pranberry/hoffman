@@ -13,6 +13,7 @@ import {
 } from './stocks';
 import { getSetting, setSetting, listSettings } from './settings';
 import { exportBackup, importBackup } from './backup';
+import { getHeatmapData } from './heatmap';
 
 /**
  * ── ARCHITECTURAL OVERVIEW: IPC HANDLERS ──
@@ -74,6 +75,9 @@ export function registerIpcHandlers(): void {
   // ── BACKUP: Data portability via JSON export/import ──
   ipcMain.handle('backup:export', () => exportBackup());
   ipcMain.handle('backup:import', () => importBackup());
+
+  // ── HEATMAP: TSX market heatmap data ──
+  ipcMain.handle('heatmap:getData', () => getHeatmapData());
 
   // ── UTILITIES: Open links safely in the default browser ──
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
