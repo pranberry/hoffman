@@ -157,6 +157,7 @@ export interface IpcChannels {
 export interface HeatmapStockData {
   ticker: string;
   name: string;
+  price: number;
   mcap: number;
   weight: number;
   changeDay: number;
@@ -175,4 +176,8 @@ export interface HeatmapData {
   lastUpdated: string;
   tickerCount: number;
   sectors: HeatmapSectorData[];
+  progress?: {
+    current: number;
+    total: number;
+  };
 }

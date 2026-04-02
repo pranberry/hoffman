@@ -2,10 +2,17 @@
 
 A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks. Zero telemetry — the only network calls are to your RSS feeds and Yahoo Finance.
 
+
+![Screenshot](https://img.shields.io/badge/stocks-221-green) ![Screenshot](https://img.shields.io/badge/sectors-11-blue)
+
+<img src="./screenshots/screenshot_feed.png" alt="screenshot_feed" width="600"/> </br>
+<img src="./screenshots/screenshot_heatmap.png" alt="screenshot_heatmap" width="600"/>
+
 ## Features
 
 - **RSS Reader** — Add feeds by URL, organize into folders, clean reading view
 - **Stock Tracker** — Side panel watchlist with live quotes from Yahoo Finance
+- **TSX Heatmap** — Full S&P/TSX Composite treemap (222 stocks) with 1D/1M/1Y performance, sector filtering, and Top 60 view
 - **Intelligent Responsive UI** — Panels automatically shrink or collapse as you resize the window. The stock panel transforms into a compact ticker view.
 - **Backup & Restore** — Export your entire configuration (feeds, folders, stocks) to a portable `.json` file and import it back anytime.
 - **Keyboard-driven** — `⌘+j`/`k` navigate, `⌘+r` refreshes, `⌘+⇧+S` stars, `⌘+⇧+T` adds stock, `⌘+⇧+F` adds feed, `⌘+⇧+D` adds folder
@@ -19,6 +26,7 @@ A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks
 - **Add Feed**: Press `⌘+⇧+F` or use the sidebar "+" button.
 - **Add Folder**: Press `⌘+⇧+D` or use the sidebar folder icon.
 - **Add Stock**: Press `⌘+⇧+T` or use the "+ Add Stock" button in the right panel.
+- **TSX Heatmap**: Toggle between all 222 stocks or the Top 60 by weight. Filter by sector using the top bar. Toggle between daily, monthly, and yearly performance.
 - **Export/Import**: Open Settings (⚙ icon in sidebar) to backup your configuration to a `.json` file. This makes it easy to sync between machines or keep a safe copy of your reading list.
 
 ### Responsive Panels
@@ -66,6 +74,7 @@ Most news readers today are filled with tracking pixels, targeted ads, and "reco
 
 ## Development
 
+To start the development environment:
 ```bash
 npm run dev
 ```
@@ -78,6 +87,11 @@ This builds the main process, then starts three concurrent processes:
 To run the automated test suite:
 ```bash
 npm run test
+```
+
+To run TypeScript type checking across both processes:
+```bash
+npm run typecheck
 ```
 
 ## Packaging
@@ -109,17 +123,19 @@ npx electron-builder --linux AppImage # Creates an AppImage
 ## Architecture
 
 ```
-Main Process (Node)          Renderer (React)
-┌──────────────────┐         ┌──────────────────┐
-│  SQLite (data)   │◄──IPC──►│  React UI        │
-│  RSS fetching    │         │  Tailwind CSS     │
-│  Stock quotes    │         │  No Node APIs     │
-└──────────────────┘         └──────────────────┘
-        ▲
-        │ contextBridge
-        │ (preload.ts)
-        ▼
-   window.api.*
+Main Process (Node.js)               Renderer (React + Vite)
+┌─────────────────────────────┐      ┌──────────────────────────────────────┐
+│  SQLite                      │      │  Tab: Feed                           │
+│  ├─ feeds / articles         │      │  ├─ RssPanel (sidebar + articles)    │
+│  ├─ watchlist / groups       │      │  └─ StockPanel (watchlist + quotes)  │
+│  └─ settings                 │      │                                      │
+│                               │◄────►│  Tab: Heatmap                       │
+│  RSS fetching (fast-xml)     │ IPC  │  └─ TSXHeatmap (D3 treemap)         │
+│  Stock quotes (yahoo-finance) │      └──────────────────────────────────────┘
+│  Heatmap data                │                     ▲
+│  ├─ BlackRock CSV (holdings) │                     │ contextBridge
+│  └─ Yahoo Finance (quotes)   │               preload.ts
+└─────────────────────────────┘             window.api.*
 ```
 
 All communication between processes goes through `contextBridge` and typed IPC handlers. The renderer never has access to Node APIs.
@@ -133,8 +149,9 @@ All communication between processes goes through `contextBridge` and typed IPC h
 | Language | TypeScript (strict) |
 | Styling | Tailwind CSS v4 |
 | Database | better-sqlite3 (SQLite, WAL mode) |
-| RSS | rss-parser |
+| RSS | fast-xml-parser |
 | Stocks | yahoo-finance2 |
+| Heatmap | D3.js + csv-parse |
 | Bundler | Vite |
 | Packaging | electron-builder |
 

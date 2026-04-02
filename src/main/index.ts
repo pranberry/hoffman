@@ -32,7 +32,7 @@ function createWindow(): void {
     minHeight: 600,
     titleBarStyle: 'hiddenInset', // macOS specific: makes the title bar look integrated
     trafficLightPosition: { x: 16, y: 16 },
-    icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
+    icon: path.join(__dirname, '..', '..', '..', 'build', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'), // Injects the secure bridge
       contextIsolation: true, // SECURITY: Critical for protecting the main process

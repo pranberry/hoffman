@@ -34,7 +34,8 @@ const BLACKROCK_CSV_URL =
 function getLocalCsvPath(): string {
   const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
   if (isDev) {
-    return path.join(__dirname, '..', '..', 'resources', 'XIC_holdings.csv');
+    // __dirname is dist/main/main
+    return path.join(__dirname, '..', '..', '..', 'resources', 'XIC_holdings.csv');
   }
   return path.join(process.resourcesPath, 'XIC_holdings.csv');
 }
@@ -175,6 +176,7 @@ async function fetchStockData(holding: Holding): Promise<HeatmapStockData | null
     return {
       ticker: holding.ticker,
       name: holding.name,
+      price: Math.round(price * 100) / 100,
       mcap: Math.round(mcap * 100) / 100,
       weight: holding.weight,
       changeDay: Math.round(changeDay * 100) / 100,
@@ -191,6 +193,7 @@ async function fetchAllStocks(holdings: Holding[], concurrency: number = 15): Pr
   const results: HeatmapStockData[] = [];
   let index = 0;
   const total = holdings.length;
+  fetchProgress = { current: 0, total };
 
   console.error(`Heatmap: fetching ${total} tickers...`);
 
@@ -199,6 +202,7 @@ async function fetchAllStocks(holdings: Holding[], concurrency: number = 15): Pr
       const i = index++;
       const result = await fetchStockData(holdings[i]);
       if (result) results.push(result);
+      fetchProgress.current++;
     }
   }
 
@@ -215,6 +219,7 @@ let cachedData: HeatmapData | null = null;
 let cacheTime: Date | null = null;
 let holdings: Holding[] = [];
 let isFetching = false;
+let fetchProgress = { current: 0, total: 0 };
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -283,13 +288,55 @@ async function refreshData(): Promise<void> {
 
 // ── Public API ──
 
+function loadHoldingsFromLocal(): Holding[] {
+  try {
+    const text = fs.readFileSync(getLocalCsvPath(), 'utf-8');
+    return parseHoldingsCSV(text);
+  } catch (e) {
+    console.error('Failed to load local holdings:', (e as Error).message);
+    return [];
+  }
+}
+
+export function getStructuralData(): HeatmapData | null {
+  const localHoldings = loadHoldingsFromLocal();
+  if (localHoldings.length === 0) return null;
+
+  const stocks: HeatmapStockData[] = localHoldings.map((h) => ({
+    ticker: h.ticker,
+    name: h.name,
+    price: 0,
+    mcap: Math.round(h.weight * 10 * 100) / 100, // proportional placeholder
+    weight: h.weight,
+    changeDay: 0,
+    changeMonth: 0,
+    changeYear: 0,
+  }));
+
+  const sectors = groupBySector(stocks, localHoldings);
+
+  return {
+    lastUpdated: 'Loading live data...',
+    tickerCount: stocks.length,
+    sectors,
+    progress: fetchProgress.total > 0 ? fetchProgress : undefined,
+  };
+}
+
 export async function getHeatmapData(): Promise<HeatmapData | null> {
   if (!cachedData || !cacheTime || Date.now() - cacheTime.getTime() > CACHE_TTL_MS) {
     if (!isFetching) {
       refreshData();
     }
   }
-  return cachedData;
+
+  if (cachedData) return cachedData;
+
+  const structural = getStructuralData();
+  if (structural && isFetching) {
+    structural.progress = fetchProgress;
+  }
+  return structural;
 }
 
 export function startHeatmapRefresh(): void {
