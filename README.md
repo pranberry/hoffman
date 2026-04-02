@@ -2,10 +2,9 @@
 
 A privacy-first macOS desktop app for reading RSS/Atom feeds and tracking stocks. Zero telemetry — the only network calls are to your RSS feeds and Yahoo Finance.
 
-
-![Screenshot](https://img.shields.io/badge/stocks-221-green) ![Screenshot](https://img.shields.io/badge/sectors-11-blue)
-
 <img src="./screenshots/screenshot_feed.png" alt="screenshot_feed" width="600"/> </br>
+
+![Screenshot](https://img.shields.io/badge/stocks-221-green) ![Screenshot](https://img.shields.io/badge/sectors-11-blue)</br>
 <img src="./screenshots/screenshot_heatmap.png" alt="screenshot_heatmap" width="600"/>
 
 ## Features
