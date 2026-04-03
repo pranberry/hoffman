@@ -260,6 +260,71 @@ function formatTimestamp(): string {
   });
 }
 
+/**
+ * Checks if the TSX (Toronto Stock Exchange) is currently open.
+ * Hours: 9:30 AM - 4:00 PM ET, Monday - Friday.
+ * Includes a basic check for major Canadian holidays.
+ */
+function isTSXOpen(): boolean {
+  const now = new Date();
+  
+  // Convert current time to Toronto time
+  const torontoTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Toronto',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(now);
+
+  const timeParts: Record<string, number> = {};
+  torontoTime.forEach(({ type, value }) => {
+    if (type !== 'literal') timeParts[type] = parseInt(value, 10);
+  });
+
+  // Weekday check (0 is Sunday, 6 is Saturday in local time, but we need it for Toronto)
+  // Re-creating a date object in Toronto timezone to get the day of week
+  const torontoDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Toronto' }));
+  const day = torontoDate.getDay();
+  if (day === 0 || day === 6) return false;
+
+  const hour = timeParts.hour;
+  const minute = timeParts.minute;
+  const currentTimeInMinutes = hour * 60 + minute;
+
+  const openTimeInMinutes = 9 * 60 + 30; // 9:30 AM
+  const closeTimeInMinutes = 16 * 60;    // 4:00 PM
+
+  if (currentTimeInMinutes < openTimeInMinutes || currentTimeInMinutes >= closeTimeInMinutes) {
+    return false;
+  }
+
+  // Major 2026 Canadian Market Holidays (TSX)
+  const month = timeParts.month;
+  const date = timeParts.day;
+
+  const holidays = [
+    { m: 1, d: 1 },  // New Year's Day
+    { m: 2, d: 16 }, // Family Day (Feb 16, 2026)
+    { m: 4, d: 3 },  // Good Friday (Apr 3, 2026)
+    { m: 5, d: 18 }, // Victoria Day (May 18, 2026)
+    { m: 7, d: 1 },  // Canada Day
+    { m: 8, d: 3 },  // Civic Holiday (Aug 3, 2026)
+    { m: 9, d: 7 },  // Labour Day (Sep 7, 2026)
+    { m: 10, d: 12 },// Thanksgiving (Oct 12, 2026)
+    { m: 12, d: 25 },// Christmas
+    { m: 12, d: 28 },// Boxing Day (Observed Monday Dec 28, 2026)
+  ];
+
+  for (const h of holidays) {
+    if (month === h.m && date === h.d) return false;
+  }
+
+  return true;
+}
+
 async function refreshData(): Promise<void> {
   if (isFetching) return;
   isFetching = true;
@@ -276,9 +341,10 @@ async function refreshData(): Promise<void> {
       lastUpdated: formatTimestamp(),
       tickerCount: stocks.length,
       sectors,
+      isMarketOpen: isTSXOpen(),
     };
     cacheTime = new Date();
-    console.error(`Heatmap cache refreshed at ${cachedData.lastUpdated} with ${stocks.length} stocks`);
+    console.error(`Heatmap cache refreshed at ${cachedData.lastUpdated} with ${stocks.length} stocks (Open: ${cachedData.isMarketOpen})`);
   } catch (e) {
     console.error('Heatmap error refreshing data:', (e as Error).message);
   } finally {
@@ -319,6 +385,7 @@ export function getStructuralData(): HeatmapData | null {
     lastUpdated: 'Loading live data...',
     tickerCount: stocks.length,
     sectors,
+    isMarketOpen: isTSXOpen(),
     progress: fetchProgress.total > 0 ? fetchProgress : undefined,
   };
 }

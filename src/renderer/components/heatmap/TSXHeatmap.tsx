@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as d3 from 'd3';
 import type { HeatmapData, HeatmapStockData } from '../../../shared/types';
+import { useDarkMode } from '../../hooks/useDarkMode';
 
 // ── Configuration ──
 
@@ -10,30 +11,41 @@ const REFRESH_INTERVAL = 5 * 60 * 1000;
 
 const COLOR_CAPS: Record<string, number> = { '1D': 4, '1M': 15, '1Y': 30 };
 
-function getColor(change: number, period: string): string {
+function getColor(change: number, period: string, isDark: boolean): string {
   const cap = COLOR_CAPS[period];
   const clamped = Math.max(-cap, Math.min(cap, change));
   const t = clamped / cap;
 
-  if (Math.abs(t) < 0.01) return '#2a2a35';
+  if (Math.abs(t) < 0.01) return isDark ? '#2a2a35' : '#f3f4f6';
 
   if (t > 0) {
-    const r = Math.round(20 + (0 - 20) * t);
-    const g = Math.round(30 + (160 - 30) * t);
-    const b = Math.round(25 + (50 - 25) * t);
+    // Green Gradient
+    const start = isDark ? [20, 30, 25] : [243, 244, 246]; // gray-100
+    const end = isDark ? [0, 160, 50] : [22, 163, 74];    // green-600
+    const r = Math.round(start[0] + (end[0] - start[0]) * t);
+    const g = Math.round(start[1] + (end[1] - start[1]) * t);
+    const b = Math.round(start[2] + (end[2] - start[2]) * t);
     return `rgb(${r},${g},${b})`;
   } else {
+    // Red Gradient
     const absT = -t;
-    const r = Math.round(30 + (200 - 30) * absT);
-    const g = Math.round(20 + (20 - 20) * absT);
-    const b = Math.round(25 + (30 - 25) * absT);
+    const start = isDark ? [30, 20, 25] : [243, 244, 246]; // gray-100
+    const end = isDark ? [200, 20, 30] : [220, 38, 38];   // red-600
+    const r = Math.round(start[0] + (end[0] - start[0]) * absT);
+    const g = Math.round(start[1] + (end[1] - start[1]) * absT);
+    const b = Math.round(start[2] + (end[2] - start[2]) * absT);
     return `rgb(${r},${g},${b})`;
   }
 }
 
-function getTextColor(change: number, period: string): string {
+function getTextColor(change: number, period: string, isDark: boolean): string {
   const cap = COLOR_CAPS[period];
-  return Math.abs(change) > cap * 0.15 ? '#ffffff' : '#bbbbbb';
+  const t = Math.abs(change) / cap;
+  if (isDark) {
+    return t > 0.15 ? '#ffffff' : '#bbbbbb';
+  } else {
+    return t > 0.4 ? '#ffffff' : '#111827';
+  }
 }
 
 type ChangeKey = 'changeDay' | 'changeMonth' | 'changeYear';
@@ -41,6 +53,7 @@ type ChangeKey = 'changeDay' | 'changeMonth' | 'changeYear';
 // ── Main Component ──
 
 export function TSXHeatmap() {
+  const isDark = useDarkMode();
   const [data, setData] = useState<HeatmapData | null>(null);
   const [period, setPeriod] = useState<'1D' | '1M' | '1Y'>('1D');
   const [showAll, setShowAll] = useState(true);
@@ -54,6 +67,25 @@ export function TSXHeatmap() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
 
+  // Theme configuration
+  const theme = useMemo(() => ({
+    bg: isDark ? '#0a0a0f' : '#ffffff',
+    headerBorder: isDark ? '#1a1a2e' : '#e5e7eb',
+    text: isDark ? '#ffffff' : '#111827',
+    indexText: isDark ? '#e0e0e0' : '#1f2937',
+    subText: isDark ? '#666666' : '#6b7280',
+    mutedText: isDark ? '#888888' : '#9ca3af',
+    buttonBg: isDark ? '#1a1a2e' : '#f3f4f6',
+    buttonBgSelected: isDark ? '#2a2a4e' : '#e5e7eb',
+    buttonBorder: isDark ? '#2a2a3e' : '#d1d5db',
+    buttonBorderSelected: isDark ? '#4a4a6e' : '#9ca3af',
+    sectorStroke: isDark ? '#1a1a2e' : '#e5e7eb',
+    stockStroke: isDark ? '#0a0a0f' : '#ffffff',
+    tooltipBg: isDark ? 'rgba(10, 10, 20, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+    tooltipBorder: isDark ? '#333333' : '#e5e7eb',
+    neutral: isDark ? '#2a2a35' : '#f3f4f6'
+  }), [isDark]);
+
   useEffect(() => {
     let mounted = true;
     async function fetchData() {
@@ -61,7 +93,9 @@ export function TSXHeatmap() {
         const result = await window.api.heatmap.getData();
         if (mounted && result) {
           setData(result);
-          setIsLive(result.lastUpdated !== 'Loading live data...');
+          // Only consider it "Live" if we have real data and market is reported as open
+          const hasRealData = result.lastUpdated !== 'Loading live data...';
+          setIsLive(hasRealData && result.isMarketOpen === true);
           setLoading(false);
         }
       } catch (e) {
@@ -199,7 +233,7 @@ export function TSXHeatmap() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center" style={{ background: '#0a0a0f' }}>
+      <div className="flex-1 flex flex-col items-center justify-center" style={{ background: theme.bg }}>
         <div className="text-gray-500 text-sm">Loading TSX data...</div>
       </div>
     );
@@ -210,50 +244,52 @@ export function TSXHeatmap() {
   return (
     <div
       className="flex-1 flex flex-col overflow-hidden"
-      style={{ background: '#0a0a0f', color: '#e0e0e0', fontFamily: "'Inter', system-ui, sans-serif" }}
+      style={{ background: theme.bg, color: theme.indexText, fontFamily: "'Inter', system-ui, sans-serif" }}
       onMouseMove={handleMouseMove}
     >
       {/* Header */}
-      <div className="flex justify-between items-center px-4 py-2 flex-shrink-0" style={{ borderBottom: '1px solid #1a1a2e' }}>
+      <div className="flex justify-between items-center px-4 py-2 flex-shrink-0" style={{ borderBottom: `1px solid ${theme.headerBorder}` }}>
         <div className="flex items-center gap-3">
-          <span className="text-base font-semibold text-white">S&P/TSX Composite</span>
+          <span className="text-base font-semibold" style={{ color: theme.text }}>S&P/TSX Composite</span>
           <span className="text-sm font-bold font-mono" style={{ color: indexChange >= 0 ? '#22c55e' : '#ef4444' }}>
             {indexChange >= 0 ? '+' : ''}{indexChange.toFixed(2)}%
           </span>
-          <span className="text-xs flex items-center gap-1" style={{ color: '#aaa' }}>
-            <span style={{ color: isLive ? '#22c55e' : '#f59e0b', fontSize: 10 }}>●</span>
+          <span className="text-xs flex items-center gap-1" style={{ color: theme.mutedText }}>
+            <span style={{ color: isLive ? '#22c55e' : (data?.isMarketOpen === false ? '#999' : '#f59e0b'), fontSize: 10 }}>●</span>
             {isLive ? 'LIVE' : (
-              <span className="flex items-center gap-2">
-                WAITING
-                {data?.progress && (
-                  <span className="flex items-center gap-1.5">
-                    <span style={{ color: '#666' }}>({Math.round((data.progress.current / data.progress.total) * 100)}%)</span>
-                    <div style={{ width: 40, height: 4, background: '#1a1a2e', borderRadius: 2, overflow: 'hidden' }}>
-                      <div 
-                        style={{ 
-                          width: `${(data.progress.current / data.progress.total) * 100}%`, 
-                          height: '100%', 
-                          background: '#f59e0b',
-                          transition: 'width 0.3s ease-out'
-                        }} 
-                      />
-                    </div>
-                  </span>
-                )}
-              </span>
+              data?.isMarketOpen === false ? 'MARKET CLOSED' : (
+                <span className="flex items-center gap-2">
+                  WAITING
+                  {data?.progress && (
+                    <span className="flex items-center gap-1.5">
+                      <span style={{ color: theme.subText }}>({Math.round((data.progress.current / data.progress.total) * 100)}%)</span>
+                      <div style={{ width: 40, height: 4, background: theme.headerBorder, borderRadius: 2, overflow: 'hidden' }}>
+                        <div 
+                          style={{ 
+                            width: `${(data.progress.current / data.progress.total) * 100}%`, 
+                            height: '100%', 
+                            background: '#f59e0b',
+                            transition: 'width 0.3s ease-out'
+                          }} 
+                        />
+                      </div>
+                    </span>
+                  )}
+                </span>
+              )
             )}
           </span>
-          <span className="text-xs" style={{ color: '#666' }}>{displayCount} stocks</span>
-          <span className="text-xs" style={{ color: '#666' }}>{data?.lastUpdated}</span>
+          <span className="text-xs" style={{ color: theme.subText }}>{displayCount} stocks</span>
+          <span className="text-xs" style={{ color: theme.subText }}>{data?.lastUpdated}</span>
         </div>
         <div className="flex gap-1 items-center">
-          <div className="flex gap-1 mr-4" style={{ background: '#1a1a2e', padding: '2px', borderRadius: '4px', border: '1px solid #2a2a3e' }}>
+          <div className="flex gap-1 mr-4" style={{ background: theme.buttonBg, padding: '2px', borderRadius: '4px', border: `1px solid ${theme.buttonBorder}` }}>
             <button
               onClick={() => setShowAll(true)}
               className="px-3 py-0.5 rounded text-[10px] font-bold uppercase cursor-pointer transition-all"
               style={{ 
-                background: showAll ? '#2a2a4e' : 'transparent',
-                color: showAll ? '#fff' : '#666'
+                background: showAll ? theme.buttonBgSelected : 'transparent',
+                color: showAll ? theme.text : theme.subText
               }}
             >
               All
@@ -262,8 +298,8 @@ export function TSXHeatmap() {
               onClick={() => setShowAll(false)}
               className="px-3 py-0.5 rounded text-[10px] font-bold uppercase cursor-pointer transition-all"
               style={{ 
-                background: !showAll ? '#2a2a4e' : 'transparent',
-                color: !showAll ? '#fff' : '#666'
+                background: !showAll ? theme.buttonBgSelected : 'transparent',
+                color: !showAll ? theme.text : theme.subText
               }}
             >
               Top 60
@@ -275,9 +311,9 @@ export function TSXHeatmap() {
               onClick={() => setPeriod(p)}
               className="px-3 py-1 rounded text-xs font-semibold font-mono cursor-pointer transition-all"
               style={{
-                background: period === p ? '#2a2a4e' : '#1a1a2e',
-                border: `1px solid ${period === p ? '#4a4a6e' : '#2a2a3e'}`,
-                color: period === p ? '#fff' : '#888',
+                background: period === p ? theme.buttonBgSelected : theme.buttonBg,
+                border: `1px solid ${period === p ? theme.buttonBorderSelected : theme.buttonBorder}`,
+                color: period === p ? theme.text : theme.mutedText,
               }}
             >
               {p}
@@ -287,16 +323,16 @@ export function TSXHeatmap() {
       </div>
 
       {/* Sector summary bar */}
-      <div className="flex gap-1.5 px-4 py-1.5 overflow-x-auto flex-shrink-0" style={{ borderBottom: '1px solid #1a1a2e' }}>
+      <div className="flex gap-1.5 px-4 py-1.5 overflow-x-auto flex-shrink-0" style={{ borderBottom: `1px solid ${theme.headerBorder}` }}>
         <div
           onClick={() => setSelectedSector(null)}
           className="flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer flex-shrink-0"
           style={{
-            backgroundColor: !selectedSector ? '#2a2a4e' : '#1a1a2e',
-            border: `1px solid ${!selectedSector ? '#4a4a6e' : '#2a2a3e'}`,
+            backgroundColor: !selectedSector ? theme.buttonBgSelected : theme.buttonBg,
+            border: `1px solid ${!selectedSector ? theme.buttonBorderSelected : theme.buttonBorder}`,
           }}
         >
-          <span className="text-xs font-medium" style={{ color: !selectedSector ? '#fff' : '#888', fontWeight: 600 }}>All</span>
+          <span className="text-xs font-medium" style={{ color: !selectedSector ? theme.text : theme.mutedText, fontWeight: 600 }}>All</span>
         </div>
         {sectorSummaries.map((s) => (
           <div
@@ -304,13 +340,13 @@ export function TSXHeatmap() {
             onClick={() => setSelectedSector(selectedSector === s.name ? null : s.name)}
             className="flex items-center gap-1.5 px-2 py-0.5 rounded cursor-pointer flex-shrink-0 whitespace-nowrap"
             style={{
-              backgroundColor: getColor(s.change, period),
-              outline: selectedSector === s.name ? '2px solid #fff' : 'none',
+              backgroundColor: getColor(s.change, period, isDark),
+              outline: selectedSector === s.name ? `2px solid ${theme.text}` : 'none',
               outlineOffset: -1,
             }}
           >
-            <span className="text-xs font-medium" style={{ color: '#ccc' }}>{s.name}</span>
-            <span className="font-mono text-xs" style={{ color: s.change >= 0 ? '#4ade80' : '#f87171' }}>
+            <span className="text-xs font-medium" style={{ color: getTextColor(s.change, period, isDark) }}>{s.name}</span>
+            <span className="font-mono text-xs" style={{ color: s.change >= 0 ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#f87171' : '#991b1b') }}>
               {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
             </span>
           </div>
@@ -330,13 +366,13 @@ export function TSXHeatmap() {
                   width={sector.x1 - sector.x0}
                   height={sector.y1 - sector.y0}
                   fill="none"
-                  stroke="#1a1a2e"
+                  stroke={theme.sectorStroke}
                   strokeWidth={2}
                 />
                 <text
                   x={sector.x0 + 4}
                   y={sector.y0 + 13}
-                  fill="#888"
+                  fill={theme.mutedText}
                   fontSize={11}
                   fontWeight={600}
                 >
@@ -351,8 +387,8 @@ export function TSXHeatmap() {
                 const w = leaf.x1 - leaf.x0;
                 const h = leaf.y1 - leaf.y0;
                 const change = leaf.data[changeKey];
-                const bg = getColor(change, period);
-                const fg = getTextColor(change, period);
+                const bg = getColor(change, period, isDark);
+                const fg = getTextColor(change, period, isDark);
                 const showTicker = w > 28 && h > 16;
                 const showChange = w > 36 && h > 28;
 
@@ -370,7 +406,7 @@ export function TSXHeatmap() {
                       width={w}
                       height={h}
                       fill={bg}
-                      stroke="#0a0a0f"
+                      stroke={theme.stockStroke}
                       strokeWidth={0.5}
                       rx={1}
                     />
@@ -417,40 +453,41 @@ export function TSXHeatmap() {
           ref={tooltipRef}
           className="fixed pointer-events-none z-50 rounded-md"
           style={{
-            background: 'rgba(10, 10, 20, 0.95)',
-            border: '1px solid #333',
+            background: theme.tooltipBg,
+            border: `1px solid ${theme.tooltipBorder}`,
             padding: '10px 14px',
             minWidth: 180,
             backdropFilter: 'blur(8px)',
             left: tooltipPos.left,
             top: tooltipPos.top,
+            boxShadow: isDark ? '0 10px 15px -3px rgba(0, 0, 0, 0.5)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
           }}
         >
-          <div className="text-base font-bold font-mono text-white">{hoveredStock.ticker}</div>
-          <div className="text-xs mb-1.5" style={{ color: '#999' }}>{hoveredStock.name}</div>
-          <div style={{ borderTop: '1px solid #333', margin: '6px 0' }} />
-          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: '#bbb' }}>
+          <div className="text-base font-bold font-mono" style={{ color: theme.text }}>{hoveredStock.ticker}</div>
+          <div className="text-xs mb-1.5" style={{ color: theme.mutedText }}>{hoveredStock.name}</div>
+          <div style={{ borderTop: `1px solid ${theme.headerBorder}`, margin: '6px 0' }} />
+          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: theme.subText }}>
             <span>Price</span>
-            <span>${hoveredStock.price.toFixed(2)}</span>
+            <span style={{ color: theme.text }}>${hoveredStock.price.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: '#bbb' }}>
+          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: theme.subText }}>
             <span>Market Cap</span>
-            <span>${hoveredStock.mcap.toFixed(1)}B</span>
+            <span style={{ color: theme.text }}>${hoveredStock.mcap.toFixed(1)}B</span>
           </div>
-          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: '#bbb' }}>
+          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: theme.subText }}>
             <span>Weight</span>
-            <span>{hoveredStock.weight.toFixed(2)}%</span>
+            <span style={{ color: theme.text }}>{hoveredStock.weight.toFixed(2)}%</span>
           </div>
-          <div style={{ borderTop: '1px solid #333', margin: '6px 0' }} />
-          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: hoveredStock.changeDay >= 0 ? '#4ade80' : '#f87171' }}>
+          <div style={{ borderTop: `1px solid ${theme.headerBorder}`, margin: '6px 0' }} />
+          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: hoveredStock.changeDay >= 0 ? (isDark ? '#4ade80' : '#16a34a') : (isDark ? '#f87171' : '#dc2626') }}>
             <span>1D</span>
             <span>{hoveredStock.changeDay >= 0 ? '+' : ''}{hoveredStock.changeDay.toFixed(2)}%</span>
           </div>
-          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: hoveredStock.changeMonth >= 0 ? '#4ade80' : '#f87171' }}>
+          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: hoveredStock.changeMonth >= 0 ? (isDark ? '#4ade80' : '#16a34a') : (isDark ? '#f87171' : '#dc2626') }}>
             <span>1M</span>
             <span>{hoveredStock.changeMonth >= 0 ? '+' : ''}{hoveredStock.changeMonth.toFixed(2)}%</span>
           </div>
-          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: hoveredStock.changeYear >= 0 ? '#4ade80' : '#f87171' }}>
+          <div className="flex justify-between text-xs font-mono py-0.5" style={{ color: hoveredStock.changeYear >= 0 ? (isDark ? '#4ade80' : '#16a34a') : (isDark ? '#f87171' : '#dc2626') }}>
             <span>1Y</span>
             <span>{hoveredStock.changeYear >= 0 ? '+' : ''}{hoveredStock.changeYear.toFixed(2)}%</span>
           </div>

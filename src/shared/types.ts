@@ -176,6 +176,7 @@ export interface HeatmapData {
   lastUpdated: string;
   tickerCount: number;
   sectors: HeatmapSectorData[];
+  isMarketOpen?: boolean;
   progress?: {
     current: number;
     total: number;
